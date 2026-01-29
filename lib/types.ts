@@ -5,8 +5,9 @@ export interface Vacancy {
   company: string;
   location: string;
   description: string;
-  status: 'new' | 'in_progress' | 'agent_created';
+  status: 'new' | 'in_progress' | 'agent_created' | 'archived';
   createdAt: string;
+  archivedAt?: string;
   source?: 'salesforce' | 'manual';
 }
 
@@ -63,4 +64,37 @@ export interface FlowEdge {
   source: string;
   target: string;
   label?: string;
+}
+
+// Interview types
+export type InterviewChannel = 'voice' | 'whatsapp';
+export type InterviewStatus = 'started' | 'completed' | 'abandoned';
+
+export interface Interview {
+  id: string;
+  vacancyId: string;
+  agentId: string;
+  channel: InterviewChannel;
+  status: InterviewStatus;
+  startedAt: string;
+  completedAt?: string;
+  questionsAnswered: number;
+  totalQuestions: number;
+  qualified: boolean;
+  knockoutPassed: boolean;
+}
+
+// Metrics types
+export interface InterviewMetrics {
+  totalInterviews: number;
+  completedInterviews: number;
+  completionRate: number;
+  qualifiedCandidates: number;
+  qualificationRate: number;
+  channelBreakdown: {
+    voice: number;
+    whatsapp: number;
+  };
+  weeklyTrend: { date: string; count: number }[];
+  popularVacancies: { vacancyId: string; title: string; count: number }[];
 }

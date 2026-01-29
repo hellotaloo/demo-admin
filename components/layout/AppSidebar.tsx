@@ -10,10 +10,11 @@ import {
   Inbox,
   LayoutGrid,
   Briefcase,
-  Target,
+  Phone,
   Settings,
   Search,
   MoreHorizontal,
+  Target,
 } from 'lucide-react';
 
 import {
@@ -55,8 +56,8 @@ const primaryNavItems = [
 ];
 
 const overzichtenItems = [
-  { name: 'Vacatures', href: '/vacancies', icon: Briefcase, badge: 12 },
-  { name: 'Knockout Interviews', href: '/knockout-interviews', icon: Target },
+  { name: 'Interviews', href: '/interviews', icon: Phone,  badge: 12  },
+  { name: 'Insights', href: '/insights', icon: Target },
 ];
 
 const footerNavItems = [
@@ -202,13 +203,13 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-auto py-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/dummy-profile-ld.png" alt="Sarah Vd" />
-                    <AvatarFallback>SV</AvatarFallback>
+                    <AvatarImage src="/dummy-profile-ld.png" alt="Laurijn" />
+                    <AvatarFallback>L</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left">
-                    <p className="text-sm font-medium">Sarah Vd</p>
+                    <p className="text-sm font-medium">Laurijn</p>
                     <p className="text-xs text-sidebar-foreground/60">
-                      sarah@topinterim.be
+                      laurijn@taloo.be
                     </p>
                   </div>
                   <MoreHorizontal className="h-4 w-4 text-sidebar-foreground/60" />

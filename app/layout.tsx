@@ -27,11 +27,11 @@ export default function RootLayout({
         <Theme accentColor="blue" grayColor="slate" radius="medium" scaling="100%">
           <SidebarProvider>
             <AppSidebar />
-            <SidebarInset>
+            <SidebarInset className="overflow-auto">
               <Header />
-              <main className="flex-1 overflow-auto p-6 bg-white">
+              <div className="flex-1 p-6 bg-white">
                 {children}
-              </main>
+              </div>
             </SidebarInset>
           </SidebarProvider>
         </Theme>
