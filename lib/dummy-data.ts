@@ -9,6 +9,7 @@ export const dummyVacancies: Vacancy[] = [
     description: 'Wij zoeken een enthousiaste verkoopmedewerker voor onze bakkerij. Je bent verantwoordelijk voor het bedienen van klanten, het afrekenen aan de kassa en het verzorgen van de winkelindeling.',
     status: 'new',
     createdAt: '2026-01-28T10:00:00Z',
+    source: 'salesforce',
   },
   {
     id: '2',
@@ -18,6 +19,7 @@ export const dummyVacancies: Vacancy[] = [
     description: 'Voor ons distributiecentrum zoeken we een magazijnmedewerker. Je bent verantwoordelijk voor het ontvangen, opslaan en verzenden van goederen.',
     status: 'in_progress',
     createdAt: '2026-01-25T14:30:00Z',
+    source: 'salesforce',
   },
   {
     id: '3',
@@ -27,6 +29,7 @@ export const dummyVacancies: Vacancy[] = [
     description: 'Als klantenservice medewerker ben je het eerste aanspreekpunt voor onze klanten. Je beantwoordt vragen via telefoon, email en chat.',
     status: 'agent_created',
     createdAt: '2026-01-20T09:15:00Z',
+    source: 'salesforce',
   },
   {
     id: '4',
@@ -36,6 +39,7 @@ export const dummyVacancies: Vacancy[] = [
     description: 'Voor onze voedselproductielijn zoeken we productiemedewerkers. Je werkt in ploegen en bent verantwoordelijk voor het bedienen van machines.',
     status: 'new',
     createdAt: '2026-01-27T11:45:00Z',
+    source: 'salesforce',
   },
   {
     id: '5',
@@ -45,6 +49,7 @@ export const dummyVacancies: Vacancy[] = [
     description: 'Wij zoeken schoonmakers voor diverse kantoorlocaties. Flexibele werktijden mogelijk, voornamelijk vroege ochtend of late avond.',
     status: 'in_progress',
     createdAt: '2026-01-22T08:00:00Z',
+    source: 'salesforce',
   },
   {
     id: '6',
@@ -54,6 +59,7 @@ export const dummyVacancies: Vacancy[] = [
     description: 'Voor ons restaurant zoeken we allround horeca medewerkers. Je helpt in de bediening en ondersteunt in de keuken waar nodig.',
     status: 'new',
     createdAt: '2026-01-29T07:30:00Z',
+    source: 'salesforce',
   },
 ];
 

@@ -7,6 +7,7 @@ export interface Vacancy {
   description: string;
   status: 'new' | 'in_progress' | 'agent_created';
   createdAt: string;
+  source?: 'salesforce' | 'manual';
 }
 
 // Question types
