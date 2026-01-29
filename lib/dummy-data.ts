@@ -1,0 +1,160 @@
+import { Vacancy, Question, ChatMessage } from './types';
+
+export const dummyVacancies: Vacancy[] = [
+  {
+    id: '1',
+    title: 'Verkoopmedewerker Bakkerij',
+    company: 'Bakkerij Peeters',
+    location: 'Landen, België',
+    description: 'Wij zoeken een enthousiaste verkoopmedewerker voor onze bakkerij. Je bent verantwoordelijk voor het bedienen van klanten, het afrekenen aan de kassa en het verzorgen van de winkelindeling.',
+    status: 'new',
+    createdAt: '2026-01-28T10:00:00Z',
+  },
+  {
+    id: '2',
+    title: 'Magazijnmedewerker',
+    company: 'LogiTrans NV',
+    location: 'Antwerpen, België',
+    description: 'Voor ons distributiecentrum zoeken we een magazijnmedewerker. Je bent verantwoordelijk voor het ontvangen, opslaan en verzenden van goederen.',
+    status: 'in_progress',
+    createdAt: '2026-01-25T14:30:00Z',
+  },
+  {
+    id: '3',
+    title: 'Klantenservice Medewerker',
+    company: 'TeleCom Solutions',
+    location: 'Brussel, België',
+    description: 'Als klantenservice medewerker ben je het eerste aanspreekpunt voor onze klanten. Je beantwoordt vragen via telefoon, email en chat.',
+    status: 'agent_created',
+    createdAt: '2026-01-20T09:15:00Z',
+  },
+  {
+    id: '4',
+    title: 'Productiemedewerker',
+    company: 'FoodFactory BV',
+    location: 'Gent, België',
+    description: 'Voor onze voedselproductielijn zoeken we productiemedewerkers. Je werkt in ploegen en bent verantwoordelijk voor het bedienen van machines.',
+    status: 'new',
+    createdAt: '2026-01-27T11:45:00Z',
+  },
+  {
+    id: '5',
+    title: 'Schoonmaker',
+    company: 'CleanPro Services',
+    location: 'Leuven, België',
+    description: 'Wij zoeken schoonmakers voor diverse kantoorlocaties. Flexibele werktijden mogelijk, voornamelijk vroege ochtend of late avond.',
+    status: 'in_progress',
+    createdAt: '2026-01-22T08:00:00Z',
+  },
+  {
+    id: '6',
+    title: 'Horeca Medewerker',
+    company: 'Brasserie De Kroon',
+    location: 'Mechelen, België',
+    description: 'Voor ons restaurant zoeken we allround horeca medewerkers. Je helpt in de bediening en ondersteunt in de keuken waar nodig.',
+    status: 'new',
+    createdAt: '2026-01-29T07:30:00Z',
+  },
+];
+
+export const dummyQuestions: Question[] = [
+  // Knockout questions
+  {
+    id: 'q1',
+    type: 'knockout',
+    text: 'Ben je beschikbaar om 25 uur per week te werken?',
+    answerType: 'yes_no',
+    required: true,
+    order: 1,
+  },
+  {
+    id: 'q2',
+    type: 'knockout',
+    text: 'Kan je afwisselend in het weekend werken (zaterdag/zondag)?',
+    answerType: 'yes_no',
+    required: true,
+    order: 2,
+  },
+  {
+    id: 'q3',
+    type: 'knockout',
+    text: 'Woon je in of rond Landen, of kan je vlot tot daar geraken?',
+    answerType: 'yes_no',
+    required: true,
+    order: 3,
+  },
+  {
+    id: 'q4',
+    type: 'knockout',
+    text: 'Heb je een geldige werkvergunning om in België te werken?',
+    answerType: 'yes_no',
+    required: true,
+    order: 4,
+  },
+  {
+    id: 'q5',
+    type: 'knockout',
+    text: 'Ben je bereid om vroeg te starten (typisch voor een bakkerij)?',
+    answerType: 'yes_no',
+    required: true,
+    order: 5,
+  },
+  // Qualifying questions
+  {
+    id: 'q6',
+    type: 'qualifying',
+    text: 'Heb je ervaring in één van deze omgevingen?',
+    answerType: 'multiple_choice',
+    options: [
+      { id: 'o1', label: 'Verkoop' },
+      { id: 'o2', label: 'Horeca' },
+      { id: 'o3', label: 'Bakkerij' },
+      { id: 'o4', label: 'Geen ervaring, maar wel gemotiveerd' },
+    ],
+    required: true,
+    order: 6,
+  },
+  {
+    id: 'q7',
+    type: 'qualifying',
+    text: 'Wat vind je het leukst aan werken in een winkel/bakkerij?',
+    answerType: 'open',
+    required: true,
+    order: 7,
+  },
+  {
+    id: 'q8',
+    type: 'qualifying',
+    text: 'Hoe comfortabel voel je je bij klanten bedienen en afrekenen aan de kassa?',
+    answerType: 'multiple_choice',
+    options: [
+      { id: 'o5', label: 'Heel comfortabel' },
+      { id: 'o6', label: 'Gaat wel' },
+      { id: 'o7', label: 'Nog weinig ervaring' },
+    ],
+    required: true,
+    order: 8,
+  },
+  {
+    id: 'q9',
+    type: 'qualifying',
+    text: 'Hoe werk je het liefst?',
+    answerType: 'multiple_choice',
+    options: [
+      { id: 'o8', label: 'In team' },
+      { id: 'o9', label: 'Zelfstandig' },
+      { id: 'o10', label: 'Afwisseling van beide' },
+    ],
+    required: true,
+    order: 9,
+  },
+];
+
+export const initialChatMessages: ChatMessage[] = [
+  {
+    id: 'msg1',
+    role: 'assistant',
+    content: 'Ik heb de vacature geanalyseerd en knock-out en kwalificerende vragen gegenereerd. Je kunt de vragen bekijken in het "Vragen" tabblad. Heb je feedback of wil je iets aanpassen?',
+    timestamp: new Date().toISOString(),
+  },
+];
