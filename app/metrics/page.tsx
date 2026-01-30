@@ -44,7 +44,7 @@ export default function MetricsPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">
-          Interview Metrics
+          Pre-screening Metrics
         </h1>
         <p className="text-sm text-gray-500 mt-1">
           Performance insights for your interview agents
@@ -54,7 +54,7 @@ export default function MetricsPage() {
       {/* Primary Metrics - Colorful Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Interviews"
+          title="Total Pre-screening"
           value={metrics.totalInterviews}
           label="Totaal"
           icon={Phone}

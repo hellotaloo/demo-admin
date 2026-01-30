@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { RefreshCw, Check, ArrowUp, Square, Brain, Wrench, ChevronDown, FileText } from 'lucide-react';
+import { RefreshCw, Check, ArrowUp, Square, Wrench, ChevronDown, FileText } from 'lucide-react';
+import { ThinkingIndicator } from './ThinkingIndicator';
 import {
   Collapsible,
   CollapsibleContent,
@@ -190,18 +191,37 @@ export function InterviewAssistant({
     setIsLoading(true);
     setFeedbackStatus('Feedback verwerken...');
 
-    try {
-      const { interview: updatedInterview, message: responseMessage } = await sendFeedback(sessionId, userMessage, handleSSEEvent);
-      const questions = convertToFrontendQuestions(updatedInterview);
-      onQuestionsUpdate(questions);
-      addMessage('assistant', responseMessage || 'Ik heb de vragen aangepast op basis van je feedback.');
-    } catch (error) {
-      console.error('Failed to send feedback:', error);
-      addMessage('assistant', 'Er is een fout opgetreden bij het verwerken van je feedback. Probeer het opnieuw.');
-    } finally {
-      setIsLoading(false);
-      setFeedbackStatus('');
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const { interview: updatedInterview, message: responseMessage } = await sendFeedback(sessionId, userMessage, handleSSEEvent);
+        const questions = convertToFrontendQuestions(updatedInterview);
+        onQuestionsUpdate(questions);
+        addMessage('assistant', responseMessage || 'Ik heb de vragen aangepast op basis van je feedback.');
+        setIsLoading(false);
+        setFeedbackStatus('');
+        return; // Success, exit the function
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        console.warn(`Send feedback attempt ${attempt + 1} failed:`, error);
+        
+        // If we have more retries, wait with exponential backoff before trying again
+        if (attempt < maxRetries - 1) {
+          const backoffMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+          setFeedbackStatus('Opnieuw proberen...');
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          setFeedbackStatus('Feedback verwerken...');
+        }
+      }
     }
+
+    // All retries failed
+    console.error('Failed to send feedback after all retries:', lastError);
+    addMessage('assistant', 'Er is een fout opgetreden bij het verwerken van je feedback. Probeer het opnieuw.');
+    setIsLoading(false);
+    setFeedbackStatus('');
   };
 
   const handleApprove = () => {
@@ -211,9 +231,8 @@ export function InterviewAssistant({
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
-        {/* Collapsible vacancy context card */}
+      {/* Fixed collapsible vacancy context card */}
+      <div className="px-6 pt-6 pb-2">
         <Collapsible open={isVacancyOpen} onOpenChange={setIsVacancyOpen}>
           <div className="rounded-lg bg-gray-100">
             <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-gray-200/50 transition-colors rounded-lg">
@@ -225,34 +244,41 @@ export function InterviewAssistant({
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="px-4 pb-4">
-                <div className="max-h-[400px] overflow-y-auto rounded-md bg-white p-3">
-                  <div className="text-sm text-gray-600 prose prose-sm max-w-none">
-                    <ReactMarkdown
-                      components={{
-                        h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-800 mt-3 first:mt-0 mb-2">{children}</h3>,
-                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
-                        li: ({ children }) => <li className="text-gray-600">{children}</li>,
-                      }}
-                    >
-                      {vacancyText}
-                    </ReactMarkdown>
+                <div className="relative">
+                  <div className="max-h-[400px] overflow-y-auto rounded-md bg-white p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    <div className="text-sm text-gray-600 prose prose-sm max-w-none pb-6">
+                      <ReactMarkdown
+                        components={{
+                          h3: ({ children }) => <h3 className="text-sm font-semibold text-gray-800 mt-3 first:mt-0 mb-2">{children}</h3>,
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>,
+                          li: ({ children }) => <li className="text-gray-600">{children}</li>,
+                        }}
+                      >
+                        {vacancyText}
+                      </ReactMarkdown>
+                    </div>
                   </div>
+                  {/* Gradient overlay to indicate scroll */}
+                  <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-md" />
                 </div>
               </div>
             </CollapsibleContent>
           </div>
         </Collapsible>
+      </div>
 
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {isGenerating && (
-          <div className="flex items-center gap-2 text-gray-500">
-            {currentStatus.includes('genereren') || currentStatus.includes('aanpassen') ? (
+          currentStatus.includes('genereren') || currentStatus.includes('aanpassen') ? (
+            <div className="flex items-center gap-2 text-gray-500">
               <Wrench className="w-4 h-4 text-orange-500 animate-pulse" />
-            ) : (
-              <Brain className="w-4 h-4 text-purple-500 animate-pulse" />
-            )}
-            <span className="text-sm">{currentStatus || 'Vacature analyseren...'}</span>
-          </div>
+              <span className="text-sm">{currentStatus}</span>
+            </div>
+          ) : (
+            <ThinkingIndicator />
+          )
         )}
 
         {messages.map((message) => (
@@ -264,14 +290,14 @@ export function InterviewAssistant({
         ))}
         
         {isLoading && (
-          <div className="flex items-center gap-2">
-            {feedbackStatus.includes('aanpassen') ? (
+          feedbackStatus.includes('aanpassen') ? (
+            <div className="flex items-center gap-2">
               <Wrench className="w-4 h-4 text-orange-500 animate-pulse" />
-            ) : (
-              <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
-            )}
-            <span className="text-sm text-gray-500">{feedbackStatus || 'Aan het nadenken...'}</span>
-          </div>
+              <span className="text-sm text-gray-500">{feedbackStatus}</span>
+            </div>
+          ) : (
+            <ThinkingIndicator />
+          )
         )}
         
         <div ref={messagesEndRef} />

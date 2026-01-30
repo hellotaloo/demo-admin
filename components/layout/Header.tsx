@@ -8,11 +8,11 @@ import { SystemStatus } from './SystemStatus';
 // Map pathnames to page titles
 const pageTitles: Record<string, string> = {
   '/': 'Dashboard',
-  '/metrics': 'Interview Metrics',
+  '/metrics': 'Pre-screening Metrics',
   '/vacancies': 'Vacatures',
   '/inbox': 'Inbox',
-  '/interviews': 'Interviews',
-  '/knockout-interviews': 'Interviews',
+  '/pre-screening': 'Pre-screening',
+  '/knockout-interviews': 'Pre-screening',
   '/insights': 'Insights',
   '/finetune': 'Finetune',
   '/admin': 'Admin',
@@ -25,8 +25,8 @@ function getPageTitle(pathname: string): string {
   
   // Check for dynamic routes
   if (pathname.startsWith('/vacancies/')) return 'Vacature';
-  if (pathname.startsWith('/interviews/generate/')) return 'Interview genereren';
-  if (pathname.startsWith('/interviews/')) return 'Interview';
+  if (pathname.startsWith('/pre-screening/generate/')) return 'Pre-screening genereren';
+  if (pathname.startsWith('/pre-screening/')) return 'Pre-screening';
   
   return 'Nieuw tabblad';
 }

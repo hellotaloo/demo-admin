@@ -165,7 +165,7 @@ const mockApplications: Application[] = [
   },
 ];
 
-export default function GenerateInterviewPage({ params }: PageProps) {
+export default function GeneratePreScreeningPage({ params }: PageProps) {
   const { id } = use(params);
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(true);
@@ -216,8 +216,8 @@ export default function GenerateInterviewPage({ params }: PageProps) {
     }
   }, []);
 
-  // Generate interview questions via backend API with retry logic
-  const doGenerateInterview = useCallback(async (existingSessionId?: string) => {
+  // Generate pre-screening questions via backend API with retry logic
+  const doGeneratePreScreening = useCallback(async (existingSessionId?: string) => {
     setIsGenerating(true);
     setCurrentStatus('Vacature analyseren...');
 
@@ -266,8 +266,8 @@ export default function GenerateInterviewPage({ params }: PageProps) {
 
   // Auto-generate questions on page load
   useEffect(() => {
-    doGenerateInterview();
-  }, [doGenerateInterview]);
+    doGeneratePreScreening();
+  }, [doGeneratePreScreening]);
 
   // Detect which questions changed and highlight them
   const updateQuestionsWithHighlight = useCallback((newQuestions: GeneratedQuestion[]) => {
@@ -325,7 +325,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
 
   const handleRegenerate = async () => {
     // Regenerate by calling the API again (without session to get fresh questions)
-    await doGenerateInterview();
+    await doGeneratePreScreening();
   };
 
   const handleApprove = () => {
@@ -530,7 +530,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
 
       {/* Content area below the line */}
       <div className="flex flex-1 min-h-0">
-        {/* Left column - Interview Questions Panel */}
+        {/* Left column - Pre-screening Questions Panel */}
         <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="max-w-[720px] -mt-3">
             <InterviewQuestionsPanel 

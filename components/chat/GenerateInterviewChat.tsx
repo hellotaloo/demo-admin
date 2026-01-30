@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { RefreshCw, Sparkles, Check, ArrowRight, ArrowUp, Square } from 'lucide-react';
 import { QuestionListMessage, GeneratedQuestion } from './QuestionListMessage';
+import { ThinkingIndicator } from './ThinkingIndicator';
 import {
   PromptInput,
   PromptInputAction,
@@ -207,11 +208,8 @@ export function GenerateInterviewChat({ vacancyTitle, onComplete, onQuestionsGen
         ))}
         
         {isLoading && (
-          <div className="max-w-[610px] flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-gray-400 animate-spin" />
-            <span className="text-sm text-gray-500">
-              {conversationState === 'analyzing' ? 'Vacature analyseren...' : 'Aan het nadenken...'}
-            </span>
+          <div className="max-w-[610px]">
+            <ThinkingIndicator />
           </div>
         )}
         

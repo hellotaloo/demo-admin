@@ -57,7 +57,7 @@ const primaryNavItems = [
 ];
 
 const overzichtenItems = [
-  { name: 'Interviews', href: '/interviews', icon: Phone,  badge: 12  },
+  { name: 'Pre-screening', href: '/pre-screening', icon: Phone,  badge: 12  },
   { name: 'Insights', href: '/insights', icon: Target },
 ];
 

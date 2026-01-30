@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { dummyVacancies, dummyInterviews } from '@/lib/dummy-data';
 import { MetricCard, ChannelCard } from '@/components/metrics';
 
-// Filter vacancies with status 'new' for the create conversational interview section
+// Filter vacancies with status 'new' for the create conversational pre-screening section
 const pendingVacancies = dummyVacancies.filter(v => v.status === 'new');
 
 // Calculate weekly metrics
@@ -43,7 +43,7 @@ function getWeeklyMetrics() {
   };
 }
 
-function PendingInterviewSetup() {
+function PendingSetup() {
   if (pendingVacancies.length === 0) {
     return (
       <div>
@@ -108,7 +108,7 @@ function PendingInterviewSetup() {
               href={`/vacancies/${vacancy.id}`}
               className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
             >
-              Generate interview
+              Generate pre-screening
               <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -118,24 +118,24 @@ function PendingInterviewSetup() {
   );
 }
 
-export default function InterviewsPage() {
+export default function PreScreeningPage() {
   const weeklyMetrics = getWeeklyMetrics();
   
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-semibold text-gray-900">
-          Interviews
+          Pre-screening
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Overview of your conversational interviews
+          Overview of your conversational pre-screening
         </p>
       </div>
 
-      {/* Weekly Interview Metrics - 4 cards in a row */}
+      {/* Weekly Pre-screening Metrics - 4 cards in a row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Total Interviews"
+          title="Total Pre-screening"
           value={weeklyMetrics.total}
           label="This week"
           icon={Phone}
@@ -167,8 +167,8 @@ export default function InterviewsPage() {
         />
       </div>
 
-      {/* Create Conversational Interview */}
-      <PendingInterviewSetup />
+      {/* Create Conversational Pre-screening */}
+      <PendingSetup />
     </div>
   );
 }

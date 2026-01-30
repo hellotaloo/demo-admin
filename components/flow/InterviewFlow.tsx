@@ -48,7 +48,7 @@ export function InterviewFlow({ questions }: InterviewFlowProps) {
       id: 'start',
       type: 'start',
       position: { x: START_X, y: START_Y },
-      data: { label: 'Start Interview' },
+      data: { label: 'Start Pre-screening' },
     });
     
     let currentY = START_Y + VERTICAL_SPACING;
@@ -198,7 +198,7 @@ export function InterviewFlow({ questions }: InterviewFlowProps) {
       type: 'end',
       position: { x: START_X, y: currentY },
       data: { 
-        label: 'Interview Compleet',
+        label: 'Pre-screening Compleet',
         endType: 'complete'
       },
     });

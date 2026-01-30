@@ -32,20 +32,20 @@ const pendingVacancies = dummyVacancies.filter(v => v.status === 'new');
 const runningVacancies = dummyVacancies.filter(v => v.status === 'in_progress' || v.status === 'agent_created');
 const archivedVacancies = dummyVacancies.filter(v => v.status === 'archived');
 
-// Calculate interview stats per vacancy
+// Calculate pre-screening stats per vacancy
 function getVacancyStats(vacancyId: string) {
-  const interviews = dummyInterviews.filter(i => i.vacancyId === vacancyId);
-  const total = interviews.length;
-  const completed = interviews.filter(i => i.status === 'completed').length;
-  const qualified = interviews.filter(i => i.qualified).length;
-  const lastInterview = interviews.length > 0 ? interviews[0].startedAt : null;
+  const prescreenings = dummyInterviews.filter(i => i.vacancyId === vacancyId);
+  const total = prescreenings.length;
+  const completed = prescreenings.filter(i => i.status === 'completed').length;
+  const qualified = prescreenings.filter(i => i.qualified).length;
+  const lastPrescreening = prescreenings.length > 0 ? prescreenings[0].startedAt : null;
   
   return {
     total,
     completed,
     completionRate: total > 0 ? Math.round((completed / total) * 100) : 0,
     qualified,
-    lastInterview,
+    lastPrescreening,
   };
 }
 
@@ -54,12 +54,12 @@ function getWeeklyMetrics() {
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
   
-  const weeklyInterviews = dummyInterviews.filter(i => new Date(i.startedAt) > weekAgo);
-  const totalWeekly = weeklyInterviews.length;
-  const completedWeekly = weeklyInterviews.filter(i => i.status === 'completed').length;
-  const qualifiedWeekly = weeklyInterviews.filter(i => i.qualified).length;
-  const voiceWeekly = weeklyInterviews.filter(i => i.channel === 'voice').length;
-  const whatsappWeekly = weeklyInterviews.filter(i => i.channel === 'whatsapp').length;
+  const weeklyPrescreenings = dummyInterviews.filter(i => new Date(i.startedAt) > weekAgo);
+  const totalWeekly = weeklyPrescreenings.length;
+  const completedWeekly = weeklyPrescreenings.filter(i => i.status === 'completed').length;
+  const qualifiedWeekly = weeklyPrescreenings.filter(i => i.qualified).length;
+  const voiceWeekly = weeklyPrescreenings.filter(i => i.channel === 'voice').length;
+  const whatsappWeekly = weeklyPrescreenings.filter(i => i.channel === 'whatsapp').length;
   
   // Get daily data for sparkline (last 7 days)
   const dailyData: { value: number }[] = [];
@@ -67,7 +67,7 @@ function getWeeklyMetrics() {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
-    const count = dummyInterviews.filter(int => int.startedAt.split('T')[0] === dateStr).length;
+    const count = dummyInterviews.filter(item => item.startedAt.split('T')[0] === dateStr).length;
     dailyData.push({ value: count });
   }
   
@@ -89,7 +89,7 @@ function formatDate(dateString: string | null) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function PendingInterviewSetup({ onViewSource }: { onViewSource: (vacancy: Vacancy) => void }) {
+function PendingPreScreeningSetup({ onViewSource }: { onViewSource: (vacancy: Vacancy) => void }) {
   if (pendingVacancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -156,11 +156,11 @@ function PendingInterviewSetup({ onViewSource }: { onViewSource: (vacancy: Vacan
               {formatDate(vacancy.createdAt)}
             </TableCell>
             <TableCell className="text-right">
-              <Link
-                href={`/interviews/generate/${vacancy.id}`}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-              >
-                Generate interview
+                <Link
+                  href={`/pre-screenings/generate/${vacancy.id}`}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  Generate pre-screening
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </TableCell>
@@ -188,10 +188,10 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typ
       <TableHeader>
         <TableRow>
           <TableHead className="w-full">Vacancy</TableHead>
-          <TableHead className="text-center">Interviews</TableHead>
+          <TableHead className="text-center">Pre-screenings</TableHead>
           <TableHead className="text-center">Completed</TableHead>
           <TableHead className="text-center">Qualified</TableHead>
-          <TableHead>{showArchiveDate ? 'Archived' : 'Last Interview'}</TableHead>
+          <TableHead>{showArchiveDate ? 'Archived' : 'Last Pre-screening'}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -232,7 +232,7 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typ
               <TableCell className="text-gray-500 text-sm">
                 {showArchiveDate 
                   ? formatDate(vacancy.archivedAt || null)
-                  : formatDate(stats.lastInterview)
+                  : formatDate(stats.lastPrescreening)
                 }
               </TableCell>
             </TableRow>
@@ -243,7 +243,7 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typ
   );
 }
 
-export default function InterviewsPage() {
+export default function PreScreeningsPage() {
   const weeklyMetrics = getWeeklyMetrics();
   const [autoGenerate, setAutoGenerate] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
@@ -254,17 +254,17 @@ export default function InterviewsPage() {
         <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">
-            Interviews
+            Pre-screenings
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Overview of your conversational interviews
+            Overview of your conversational pre-screenings
           </p>
         </div>
 
-        {/* Weekly Interview Metrics - 4 cards in a row */}
+        {/* Weekly Pre-screening Metrics - 4 cards in a row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
-            title="Total Interviews"
+            title="Total Pre-screenings"
             value={weeklyMetrics.total}
             label="This week"
             icon={Phone}
@@ -309,7 +309,7 @@ export default function InterviewsPage() {
             </TabsTrigger>
             <TabsTrigger value="running">
               <Loader className="w-3.5 h-3.5" />
-              Running Interviews
+              Running Pre-screenings
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
                 {runningVacancies.length}
               </span>
@@ -339,14 +339,14 @@ export default function InterviewsPage() {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="max-w-[240px]">
-                When enabled, every vacancy sent to Taloo will be automatically converted to an interview. Interviews can always be modified later.
+                When enabled, every vacancy sent to Taloo will be automatically converted to a pre-screening. Pre-screenings can always be modified later.
               </TooltipContent>
             </Tooltip>
           </div>
         </div>
         
         <TabsContent value="recent" className="">
-          <PendingInterviewSetup onViewSource={setSelectedVacancy} />
+          <PendingPreScreeningSetup onViewSource={setSelectedVacancy} />
         </TabsContent>
         
         <TabsContent value="running" className="">

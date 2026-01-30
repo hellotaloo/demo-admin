@@ -193,7 +193,7 @@ export default function VacancyDetailPage({ params }: PageProps) {
           </Tabs.Trigger>
           <Tabs.Trigger value="flow">
             <GitBranch className="w-4 h-4 mr-2" />
-            Interview Flow
+            Pre-screening Flow
           </Tabs.Trigger>
           <Tabs.Trigger value="chat">
             <MessageSquare className="w-4 h-4 mr-2" />
