@@ -2,6 +2,38 @@ import { Vacancy, Question, ChatMessage, Interview, InterviewMetrics } from './t
 
 export const dummyVacancies: Vacancy[] = [
   {
+    id: '20',
+    title: 'Productieoperator 2 ploegen',
+    company: 'Ago Industries',
+    location: 'Ham, België',
+    description: `Samen met onze klant, gelegen regio Diest, zijn we op zoek naar een operator die graag in 2 ploegen wilt werken.
+
+### Jouw verantwoordelijkheden
+
+- Instellen van machines
+- De bevoorrading van de werkplaatsen of productielijnen met materiaal opvolgen en controleren
+- Productielijn opvolgen en controleren
+- Storingen oplossen Kwaliteitscontroles
+- Het opvolgen van de hygiënevoorschriften
+- Collega's aansturen waar nodig
+
+### Kwalificaties
+
+- Je bezit een technische achtergrond
+- Zin voor initiatief: uit eigen beweging gepaste acties ondernemen
+- Je kan goed communiceren en kan jouw kennis en vaardigheden op een duidelijke manier overbrengen
+- Mensgericht zijn om goed met mensen te kunnen omgaan
+
+### Ontwikkeling en groei
+
+Snelle opstart is mogelijk Aantrekkelijk salaris van €17,59/uur, maaltijdcheques + ploegenpremie Fulltime betrekking
+Optie tot een vast contract Je zal werken in een twee ploegensysteem Variatie in je takenpakket Opleiding op de werkvloer
+Mogelijkheid om door te groeien tot lijnverantwoordelijke`,
+    status: 'new',
+    createdAt: '2026-01-30T09:00:00Z',
+    source: 'salesforce',
+  },
+  {
     id: '1',
     title: 'Verkoopmedewerker Bakkerij',
     company: 'Bakkerij Peeters',
@@ -59,107 +91,6 @@ export const dummyVacancies: Vacancy[] = [
     description: 'Voor ons restaurant zoeken we allround horeca medewerkers. Je helpt in de bediening en ondersteunt in de keuken waar nodig.',
     status: 'new',
     createdAt: '2026-01-29T07:30:00Z',
-    source: 'salesforce',
-  },
-  // Running interviews
-  {
-    id: '10',
-    title: 'Bezorger',
-    company: 'Express Delivery',
-    location: 'Gent, België',
-    description: 'Wij zoeken bezorgers voor pakketleveringen in de regio Gent.',
-    status: 'agent_created',
-    createdAt: '2026-01-18T10:00:00Z',
-    source: 'salesforce',
-  },
-  {
-    id: '11',
-    title: 'Winkelmedewerker',
-    company: 'Fashion Store',
-    location: 'Antwerpen, België',
-    description: 'Voor onze kledingwinkel zoeken we enthousiaste winkelmedewerkers.',
-    status: 'in_progress',
-    createdAt: '2026-01-17T14:00:00Z',
-    source: 'salesforce',
-  },
-  {
-    id: '12',
-    title: 'Heftruckchauffeur',
-    company: 'Warehouse Plus',
-    location: 'Mechelen, België',
-    description: 'Ervaren heftruckchauffeur gezocht voor ons magazijn.',
-    status: 'agent_created',
-    createdAt: '2026-01-16T09:00:00Z',
-    source: 'salesforce',
-  },
-  {
-    id: '13',
-    title: 'Administratief Medewerker',
-    company: 'Office Solutions',
-    location: 'Brussel, België',
-    description: 'Administratief medewerker voor algemene kantoorwerkzaamheden.',
-    status: 'agent_created',
-    createdAt: '2026-01-15T11:00:00Z',
-    source: 'salesforce',
-  },
-  {
-    id: '14',
-    title: 'Monteur',
-    company: 'TechFix BV',
-    location: 'Leuven, België',
-    description: 'Monteur voor installatie en reparatie van huishoudelijke apparaten.',
-    status: 'in_progress',
-    createdAt: '2026-01-14T08:30:00Z',
-    source: 'manual',
-  },
-  {
-    id: '15',
-    title: 'Barista',
-    company: 'Coffee Corner',
-    location: 'Gent, België',
-    description: 'Gepassioneerde barista gezocht voor ons koffiehuis.',
-    status: 'agent_created',
-    createdAt: '2026-01-13T12:00:00Z',
-    source: 'salesforce',
-  },
-  {
-    id: '16',
-    title: 'Orderpicker',
-    company: 'E-Commerce Hub',
-    location: 'Antwerpen, België',
-    description: 'Orderpickers voor ons e-commerce distributiecentrum.',
-    status: 'agent_created',
-    createdAt: '2026-01-12T07:00:00Z',
-    source: 'salesforce',
-  },
-  {
-    id: '17',
-    title: 'Beveiligingsagent',
-    company: 'SecureGuard',
-    location: 'Brussel, België',
-    description: 'Beveiligingsagent voor evenementen en kantoorgebouwen.',
-    status: 'in_progress',
-    createdAt: '2026-01-11T16:00:00Z',
-    source: 'salesforce',
-  },
-  {
-    id: '18',
-    title: 'Keukenhulp',
-    company: 'Restaurant De Smaak',
-    location: 'Hasselt, België',
-    description: 'Keukenhulp voor ondersteuning in onze drukke restaurantkeuken.',
-    status: 'agent_created',
-    createdAt: '2026-01-10T13:00:00Z',
-    source: 'manual',
-  },
-  {
-    id: '19',
-    title: 'Callcenter Agent',
-    company: 'ContactCenter Pro',
-    location: 'Leuven, België',
-    description: 'Callcenter agent voor inkomende en uitgaande gesprekken.',
-    status: 'agent_created',
-    createdAt: '2026-01-09T10:00:00Z',
     source: 'salesforce',
   },
   // Archived vacancies
@@ -303,7 +234,7 @@ export const initialChatMessages: ChatMessage[] = [
 // Generate mock interviews for the last 30 days
 function generateMockInterviews(): Interview[] {
   const interviews: Interview[] = [];
-  const vacancyIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'];
+  const vacancyIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
   const channels: ('voice' | 'whatsapp')[] = ['voice', 'whatsapp'];
   const statuses: ('started' | 'completed' | 'abandoned')[] = ['completed', 'completed', 'completed', 'abandoned', 'started'];
   

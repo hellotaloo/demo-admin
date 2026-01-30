@@ -1,10 +1,12 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, List, Loader, Info } from 'lucide-react';
+import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, List, Loader, Info, ExternalLink, Calendar } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { dummyVacancies, dummyInterviews } from '@/lib/dummy-data';
+import { Vacancy } from '@/lib/types';
 import { MetricCard, ChannelCard } from '@/components/metrics';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -17,6 +19,13 @@ import {
 } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet';
 
 // Filter vacancies by status
 const pendingVacancies = dummyVacancies.filter(v => v.status === 'new');
@@ -80,7 +89,7 @@ function formatDate(dateString: string | null) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function PendingInterviewSetup() {
+function PendingInterviewSetup({ onViewSource }: { onViewSource: (vacancy: Vacancy) => void }) {
   if (pendingVacancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -107,12 +116,9 @@ function PendingInterviewSetup() {
           <TableRow key={vacancy.id}>
             <TableCell>
               <div className="min-w-0">
-                <Link 
-                  href={`/vacancies/${vacancy.id}`}
-                  className="font-medium text-gray-900 hover:text-gray-700 truncate block"
-                >
+                <span className="font-medium text-gray-900 truncate block">
                   {vacancy.title}
-                </Link>
+                </span>
                 <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                   <span className="flex items-center gap-1">
                     <Building2 className="w-3 h-3" />
@@ -127,7 +133,11 @@ function PendingInterviewSetup() {
             </TableCell>
             <TableCell>
               {vacancy.source === 'salesforce' ? (
-                <span title="Synced from Salesforce">
+                <button 
+                  onClick={() => onViewSource(vacancy)}
+                  className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+                  title="View source record"
+                >
                   <Image 
                     src="/salesforc-logo-cloud.png" 
                     alt="Salesforce" 
@@ -135,7 +145,9 @@ function PendingInterviewSetup() {
                     height={11}
                     className="opacity-70"
                   />
-                </span>
+                  <span className="text-xs font-medium">View</span>
+                  <ExternalLink className="w-3 h-3" />
+                </button>
               ) : (
                 <span className="text-xs text-gray-500">Manual</span>
               )}
@@ -234,6 +246,7 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: typ
 export default function InterviewsPage() {
   const weeklyMetrics = getWeeklyMetrics();
   const [autoGenerate, setAutoGenerate] = useState(false);
+  const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
   
   return (
     <div className="space-y-12">
@@ -333,7 +346,7 @@ export default function InterviewsPage() {
         </div>
         
         <TabsContent value="recent" className="">
-          <PendingInterviewSetup />
+          <PendingInterviewSetup onViewSource={setSelectedVacancy} />
         </TabsContent>
         
         <TabsContent value="running" className="">
@@ -344,6 +357,94 @@ export default function InterviewsPage() {
           <VacanciesTable vacancies={archivedVacancies} showArchiveDate />
         </TabsContent>
       </Tabs>
+
+      {/* Source Record Sheet */}
+      <Sheet open={!!selectedVacancy} onOpenChange={(open) => !open && setSelectedVacancy(null)}>
+        <SheetContent className="sm:max-w-[700px] flex flex-col h-full">
+          {/* Fixed Header */}
+          <SheetHeader className="shrink-0 border-b pb-4">
+            <div className="flex items-center gap-2">
+              <Image 
+                src="/salesforc-logo-cloud.png" 
+                alt="Salesforce" 
+                width={20} 
+                height={14}
+                className="opacity-80"
+              />
+              <SheetTitle className="text-lg">Source Record</SheetTitle>
+            </div>
+            <SheetDescription>
+              Original vacancy data from Salesforce
+            </SheetDescription>
+          </SheetHeader>
+          
+          {/* Scrollable Content */}
+          {selectedVacancy && (
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+              {/* Vacancy Title */}
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">
+                  {selectedVacancy.title}
+                </h3>
+                <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Building2 className="w-4 h-4" />
+                    {selectedVacancy.company}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4" />
+                    {selectedVacancy.location}
+                  </span>
+                </div>
+              </div>
+
+              {/* Imported Date */}
+              <div className="flex items-center gap-2 text-sm text-gray-500 pb-4 border-b">
+                <Calendar className="w-4 h-4" />
+                <span>Imported {formatDate(selectedVacancy.createdAt)}</span>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Job Description</h4>
+                <div className="text-sm text-gray-600 leading-relaxed">
+                  <ReactMarkdown
+                    components={{
+                      h3: ({ children }) => (
+                        <h3 className="text-sm font-semibold text-gray-800 mt-4 mb-2">{children}</h3>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-outside ml-4 space-y-1 mb-3">{children}</ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="text-gray-600">{children}</li>
+                      ),
+                      p: ({ children }) => (
+                        <p className="mb-3">{children}</p>
+                      ),
+                    }}
+                  >
+                    {selectedVacancy.description}
+                  </ReactMarkdown>
+                </div>
+              </div>
+
+              {/* External Link */}
+              <div className="pt-4 border-t">
+                <a
+                  href="https://salesforce.com/record/example"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                >
+                  Open in Salesforce
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

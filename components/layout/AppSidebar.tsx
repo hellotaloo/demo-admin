@@ -15,6 +15,7 @@ import {
   Search,
   MoreHorizontal,
   Target,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 import {
@@ -61,6 +62,7 @@ const overzichtenItems = [
 ];
 
 const footerNavItems = [
+  { name: 'Finetune', href: '/finetune', icon: SlidersHorizontal },
   { name: 'Admin', href: '/admin', icon: Settings },
   { name: 'Zoeken', href: '/search', icon: Search },
 ];
@@ -118,7 +120,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.name}</span>
+                      <span className="text-sm">{item.name}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -136,7 +138,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild isActive={isActive(item.href)}>
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
-                      <span>{item.name}</span>
+                      <span className="text-sm">{item.name}</span>
                     </Link>
                   </SidebarMenuButton>
                   {item.badge && (

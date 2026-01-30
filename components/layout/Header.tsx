@@ -11,7 +11,10 @@ const pageTitles: Record<string, string> = {
   '/metrics': 'Interview Metrics',
   '/vacancies': 'Vacatures',
   '/inbox': 'Inbox',
+  '/interviews': 'Interviews',
   '/knockout-interviews': 'Interviews',
+  '/insights': 'Insights',
+  '/finetune': 'Finetune',
   '/admin': 'Admin',
   '/search': 'Zoeken',
 };
@@ -22,6 +25,8 @@ function getPageTitle(pathname: string): string {
   
   // Check for dynamic routes
   if (pathname.startsWith('/vacancies/')) return 'Vacature';
+  if (pathname.startsWith('/interviews/generate/')) return 'Interview genereren';
+  if (pathname.startsWith('/interviews/')) return 'Interview';
   
   return 'Nieuw tabblad';
 }

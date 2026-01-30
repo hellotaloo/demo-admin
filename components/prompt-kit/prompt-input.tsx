@@ -66,36 +66,41 @@ interface PromptInputTextareaProps {
   disableAutosize?: boolean
 }
 
-function PromptInputTextarea({
-  placeholder = "Type a message...",
-  className,
-  disableAutosize = false,
-}: PromptInputTextareaProps) {
-  const { value, onValueChange, isLoading } = usePromptInput()
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptInputTextareaProps>(
+  function PromptInputTextarea({
+    placeholder = "Type a message...",
+    className,
+    disableAutosize = false,
+  }, forwardedRef) {
+    const { value, onValueChange, isLoading } = usePromptInput()
+    const internalRef = React.useRef<HTMLTextAreaElement>(null)
+    
+    // Merge refs
+    const textareaRef = (forwardedRef || internalRef) as React.RefObject<HTMLTextAreaElement>
 
-  React.useEffect(() => {
-    if (!disableAutosize && textareaRef.current) {
-      textareaRef.current.style.height = "auto"
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
-    }
-  }, [value, disableAutosize])
+    React.useEffect(() => {
+      if (!disableAutosize && textareaRef.current) {
+        textareaRef.current.style.height = "auto"
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+      }
+    }, [value, disableAutosize, textareaRef])
 
-  return (
-    <textarea
-      ref={textareaRef}
-      value={value}
-      onChange={(e) => onValueChange(e.target.value)}
-      placeholder={placeholder}
-      disabled={isLoading}
-      rows={1}
-      className={cn(
-        "placeholder:text-muted-foreground w-full resize-none bg-transparent px-2 py-2 text-sm focus:outline-none disabled:opacity-50",
-        className
-      )}
-    />
-  )
-}
+    return (
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onValueChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={isLoading}
+        rows={1}
+        className={cn(
+          "placeholder:text-muted-foreground w-full resize-none bg-transparent px-2 py-2 text-sm focus:outline-none disabled:opacity-50",
+          className
+        )}
+      />
+    )
+  }
+)
 
 interface PromptInputActionsProps {
   children: React.ReactNode
