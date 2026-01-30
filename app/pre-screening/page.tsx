@@ -3,6 +3,7 @@
 import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, List, Loader, Loader2, Info, ExternalLink, Calendar } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Vacancy } from '@/lib/types';
@@ -26,6 +27,16 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 function formatDate(dateString: string | null | undefined) {
   if (!dateString) return '-';
@@ -40,6 +51,8 @@ function PendingSetup({
   vacancies: Vacancy[];
   onViewSource: (vacancy: Vacancy) => void;
 }) {
+  const router = useRouter();
+  
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -63,7 +76,11 @@ function PendingSetup({
       </TableHeader>
       <TableBody>
         {vacancies.map((vacancy) => (
-          <TableRow key={vacancy.id}>
+          <TableRow 
+            key={vacancy.id}
+            className="cursor-pointer"
+            onClick={() => router.push(`/pre-screening/edit/${vacancy.id}`)}
+          >
             <TableCell>
               <div className="min-w-0">
                 <span className="font-medium text-gray-900 truncate block">
@@ -84,7 +101,7 @@ function PendingSetup({
             <TableCell>
               {vacancy.source === 'salesforce' ? (
                 <button 
-                  onClick={() => onViewSource(vacancy)}
+                  onClick={(e) => { e.stopPropagation(); onViewSource(vacancy); }}
                   className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                   title="View source record"
                 >
@@ -100,7 +117,7 @@ function PendingSetup({
                 </button>
               ) : vacancy.source === 'bullhorn' ? (
                 <button 
-                  onClick={() => onViewSource(vacancy)}
+                  onClick={(e) => { e.stopPropagation(); onViewSource(vacancy); }}
                   className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                   title="View source record"
                 >
@@ -123,7 +140,8 @@ function PendingSetup({
             </TableCell>
             <TableCell className="text-right">
                 <Link
-                  href={`/pre-screening/generate/${vacancy.id}`}
+                  href={`/pre-screening/edit/${vacancy.id}`}
+                  onClick={(e) => e.stopPropagation()}
                   className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
                 >
                   Generate pre-screening
@@ -138,6 +156,8 @@ function PendingSetup({
 }
 
 function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vacancy[]; showArchiveDate?: boolean }) {
+  const router = useRouter();
+  
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -163,15 +183,16 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vac
       <TableBody>
         {vacancies.map((vacancy) => {
           return (
-            <TableRow key={vacancy.id}>
+            <TableRow 
+              key={vacancy.id}
+              className="cursor-pointer"
+              onClick={() => router.push(`/pre-screening/view/${vacancy.id}`)}
+            >
               <TableCell>
                 <div className="min-w-0">
-                  <Link 
-                    href={`/interviews/generate/${vacancy.id}`}
-                    className="font-medium text-gray-900 hover:text-gray-700 truncate block"
-                  >
+                  <span className="font-medium text-gray-900 truncate block">
                     {vacancy.title}
-                  </Link>
+                  </span>
                   <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                     <span className="flex items-center gap-1">
                       <Building2 className="w-3 h-3" />
@@ -208,11 +229,40 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vac
 }
 
 export default function PreScreeningPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [vacancies, setVacancies] = useState<Vacancy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoGenerate, setAutoGenerate] = useState(false);
+  const [showAutoGenerateConfirm, setShowAutoGenerateConfirm] = useState(false);
   const [selectedVacancy, setSelectedVacancy] = useState<Vacancy | null>(null);
+
+  // Handle auto-generate toggle - show confirmation when enabling
+  const handleAutoGenerateToggle = (checked: boolean) => {
+    if (checked) {
+      // Show confirmation dialog when enabling
+      setShowAutoGenerateConfirm(true);
+    } else {
+      // Disable immediately without confirmation
+      setAutoGenerate(false);
+    }
+  };
+
+  const confirmAutoGenerate = () => {
+    setAutoGenerate(true);
+    setShowAutoGenerateConfirm(false);
+  };
+  
+  // Get active tab from URL, default to 'recent'
+  const activeTab = searchParams.get('tab') || 'recent';
+  
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.replace(`/pre-screening?${params.toString()}`, { scroll: false });
+  };
 
   // Fetch vacancies on mount
   useEffect(() => {
@@ -235,9 +285,9 @@ export default function PreScreeningPage() {
 
   // Filter vacancies by status
   const pendingVacancies = useMemo(() => 
-    vacancies.filter(v => v.status === 'new'), [vacancies]);
+    vacancies.filter(v => v.status === 'new' || v.status === 'draft'), [vacancies]);
   const runningVacancies = useMemo(() => 
-    vacancies.filter(v => v.status === 'in_progress' || v.status === 'agent_created'), [vacancies]);
+    vacancies.filter(v => v.status === 'in_progress' || v.status === 'agent_created' || v.status === 'screening_active'), [vacancies]);
   const archivedVacancies = useMemo(() => 
     vacancies.filter(v => v.status === 'archived'), [vacancies]);
 
@@ -328,7 +378,7 @@ export default function PreScreeningPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="recent" className="space-y-2">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
         <div className="flex items-center justify-between">
           <TabsList variant="line">
             <TabsTrigger value="recent">
@@ -361,7 +411,7 @@ export default function PreScreeningPage() {
             <Switch
               id="auto-generate"
               checked={autoGenerate}
-              onCheckedChange={setAutoGenerate}
+              onCheckedChange={handleAutoGenerateToggle}
             />
             <Tooltip>
               <TooltipTrigger asChild>
@@ -495,6 +545,41 @@ export default function PreScreeningPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Auto-generate Confirmation Dialog */}
+      <AlertDialog open={showAutoGenerateConfirm} onOpenChange={setShowAutoGenerateConfirm}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enable auto-generate?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-gray-600">
+                {pendingVacancies.length > 0 ? (
+                  <p>
+                    This will create pre-screening interviews for your{' '}
+                    <span className="font-medium text-gray-900">{pendingVacancies.length} pending</span> and all future vacancies.
+                  </p>
+                ) : (
+                  <p>
+                    Pre-screening interviews will be created automatically for all future vacancies.
+                  </p>
+                )}
+                <p className="text-gray-500 text-xs">
+                  You can edit or disable individual pre-screenings anytime.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmAutoGenerate}
+              className="bg-green-600 hover:bg-green-700 focus:ring-green-500"
+            >
+              Enable
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

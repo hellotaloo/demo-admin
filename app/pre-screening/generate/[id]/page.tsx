@@ -28,8 +28,11 @@ import {
   reorderQuestions, 
   SSEEvent, 
   Interview,
+  PreScreening,
   getVacancy,
-  getApplications 
+  getApplications,
+  getPreScreening,
+  savePreScreening 
 } from '@/lib/interview-api';
 import { Vacancy, Application as BackendApplication } from '@/lib/types';
 import Link from 'next/link';
@@ -75,6 +78,10 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   const [isLoadingVacancy, setIsLoadingVacancy] = useState(true);
   const [vacancyError, setVacancyError] = useState<string | null>(null);
   
+  // Pre-screening state
+  const [existingPreScreening, setExistingPreScreening] = useState<PreScreening | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
   // Applications state (for dashboard view)
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
@@ -89,20 +96,54 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   const [showOfflineDialog, setShowOfflineDialog] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string>('');
+  const [thinkingContent, setThinkingContent] = useState<string>('');
   const [initialMessage, setInitialMessage] = useState<string>('');
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fetch vacancy on mount
+  // Fetch vacancy and check for existing pre-screening on mount
   useEffect(() => {
-    async function fetchVacancy() {
+    async function fetchVacancyAndPreScreening() {
       try {
         setIsLoadingVacancy(true);
         setVacancyError(null);
-        const data = await getVacancy(id);
-        setVacancy(data);
+        
+        // Fetch vacancy and pre-screening in parallel
+        const [vacancyData, preScreeningData] = await Promise.all([
+          getVacancy(id),
+          getPreScreening(id),
+        ]);
+        
+        setVacancy(vacancyData);
+        
+        // If we have an existing pre-screening, load the questions from it
+        if (preScreeningData) {
+          setExistingPreScreening(preScreeningData);
+          
+          // Convert pre-screening questions to frontend format
+          const loadedQuestions: GeneratedQuestion[] = [
+            ...preScreeningData.knockout_questions.map(q => ({
+              id: q.id,
+              text: q.question_text,
+              type: 'knockout' as const,
+            })),
+            ...preScreeningData.qualification_questions.map(q => ({
+              id: q.id,
+              text: q.question_text,
+              type: 'qualifying' as const,
+            })),
+          ];
+          
+          setQuestions(loadedQuestions);
+          prevQuestionsRef.current = loadedQuestions;
+          setIsGenerated(true);
+          setInitialMessage('Je hebt al een pre-screening configuratie opgeslagen. Je kunt de vragen hieronder bekijken en bewerken.');
+          // If vacancy has pre-screening, it means it was approved before
+          setIsApproved(true);
+          setIsAgentOnline(vacancyData.status === 'agent_created');
+        }
       } catch (err) {
         console.error('Failed to fetch vacancy:', err);
         setVacancyError('Vacancy not found');
@@ -111,7 +152,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
       }
     }
 
-    fetchVacancy();
+    fetchVacancyAndPreScreening();
   }, [id]);
 
   // Fetch applications when entering approved state
@@ -151,19 +192,42 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         id: q.id,
         text: q.question,
         type: 'knockout' as const,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
       ...interview.qualification_questions.map(q => ({
         id: q.id,
         text: q.question,
         type: 'qualifying' as const,
+        idealAnswer: q.ideal_answer,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
     ];
   }, []);
 
-  // Handle SSE events for status updates
+  // Handle SSE events for status and thinking updates
   const handleSSEEvent = useCallback((event: SSEEvent) => {
     if (event.type === 'status') {
-      setCurrentStatus(event.message || '');
+      // Only update status if we already have thinking content,
+      // otherwise keep showing "Data verzamelen..."
+      setThinkingContent(prev => {
+        if (prev.length > 0) {
+          // We have thinking content, update the status
+          setCurrentStatus(event.message || 'Analyseren...');
+        }
+        return prev;
+      });
+    } else if (event.type === 'thinking') {
+      // Append thinking content as it streams in
+      setThinkingContent(prev => {
+        const newContent = prev + (event.content || '');
+        // When first thinking content arrives, update status to "Analyseren"
+        if (prev.length === 0 && newContent.length > 0) {
+          setCurrentStatus('Analyseren...');
+        }
+        return newContent;
+      });
     }
   }, []);
 
@@ -172,7 +236,8 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     if (!vacancy) return;
     
     setIsGenerating(true);
-    setCurrentStatus('Vacature analyseren...');
+    setCurrentStatus('Data verzamelen...');
+    setThinkingContent(''); // Reset thinking content for new generation
 
     const maxRetries = 3;
     let lastError: Error | null = null;
@@ -188,11 +253,17 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         setSessionId(newSessionId);
         setInitialMessage(message);
         const frontendQuestions = convertToFrontendQuestions(interview);
-        prevQuestionsRef.current = frontendQuestions;
-        setQuestions(frontendQuestions);
+        // Clear changeStatus on initial generation - we only want to show the effect after feedback
+        const questionsWithoutChangeStatus = frontendQuestions.map(q => ({
+          ...q,
+          changeStatus: undefined,
+        }));
+        prevQuestionsRef.current = questionsWithoutChangeStatus;
+        setQuestions(questionsWithoutChangeStatus);
         setIsGenerated(true);
         setIsGenerating(false);
         setCurrentStatus('');
+        setThinkingContent(''); // Clear thinking content on success
         return;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -202,7 +273,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
           const backoffMs = Math.pow(2, attempt) * 1000;
           setCurrentStatus('Opnieuw proberen...');
           await new Promise(resolve => setTimeout(resolve, backoffMs));
-          setCurrentStatus('Vacature analyseren...');
+          setCurrentStatus('Data verzamelen...');
         }
       }
     }
@@ -212,14 +283,15 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     setIsGenerated(true);
     setIsGenerating(false);
     setCurrentStatus('');
+    setThinkingContent(''); // Clear thinking content on error
   }, [vacancy, handleSSEEvent, convertToFrontendQuestions]);
 
-  // Auto-generate questions when vacancy loads
+  // Auto-generate questions when vacancy loads (only if no existing pre-screening)
   useEffect(() => {
-    if (vacancy && !isGenerated && !isGenerating) {
+    if (vacancy && !isGenerated && !isGenerating && !existingPreScreening) {
       doGenerateInterview();
     }
-  }, [vacancy, isGenerated, isGenerating, doGenerateInterview]);
+  }, [vacancy, isGenerated, isGenerating, existingPreScreening, doGenerateInterview]);
 
   // Detect which questions changed and highlight them
   const updateQuestionsWithHighlight = useCallback((newQuestions: GeneratedQuestion[]) => {
@@ -271,9 +343,50 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     await doGenerateInterview();
   };
 
-  const handleApprove = () => {
-    setIsApproved(true);
-    setIsAgentOnline(true);
+  const handleApprove = async () => {
+    if (!vacancy) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Build the pre-screening config from current questions
+      const knockoutQuestions = questions
+        .filter(q => q.type === 'knockout')
+        .map(q => ({ id: q.id, question: q.text }));
+      
+      const qualificationQuestions = questions
+        .filter(q => q.type === 'qualifying')
+        .map(q => ({ id: q.id, question: q.text }));
+      
+      // Get intro and actions from existing config or use defaults
+      const intro = existingPreScreening?.intro || 
+        "Hallo! Leuk dat je solliciteert. Ben je klaar voor een paar korte vragen?";
+      const knockoutFailedAction = existingPreScreening?.knockout_failed_action || 
+        "Helaas voldoe je niet aan de basisvereisten. Interesse in andere matches?";
+      const finalAction = existingPreScreening?.final_action || 
+        "Perfect! We plannen een gesprek met de recruiter.";
+      
+      console.log('Saving pre-screening to database...');
+      
+      await savePreScreening(vacancy.id, {
+        intro,
+        knockout_questions: knockoutQuestions,
+        knockout_failed_action: knockoutFailedAction,
+        qualification_questions: qualificationQuestions,
+        final_action: finalAction,
+        approved_ids: questions.map(q => q.id),
+      });
+      
+      console.log('Pre-screening saved successfully!');
+      
+      setIsApproved(true);
+      setIsAgentOnline(true);
+    } catch (error) {
+      console.error('Failed to save pre-screening:', error);
+      alert(error instanceof Error ? error.message : 'Opslaan mislukt. Probeer het opnieuw.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSelectApplication = (applicationId: string) => {
@@ -502,8 +615,10 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
             vacancyText={vacancy.description}
             isGenerated={isGenerated}
             isGenerating={isGenerating}
+            isSaving={isSaving}
             sessionId={sessionId}
             currentStatus={currentStatus}
+            generationThinkingContent={thinkingContent}
             initialMessage={initialMessage}
             onRegenerate={handleRegenerate}
             onQuestionsUpdate={handleQuestionsUpdate}

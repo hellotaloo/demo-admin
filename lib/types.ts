@@ -1,5 +1,5 @@
 // Vacancy types
-export type VacancyStatus = 'new' | 'in_progress' | 'agent_created' | 'archived';
+export type VacancyStatus = 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived';
 export type VacancySource = 'salesforce' | 'bullhorn' | 'manual';
 
 export interface Vacancy {

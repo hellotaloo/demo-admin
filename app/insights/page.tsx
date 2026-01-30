@@ -436,7 +436,7 @@ export default function InsightsPage() {
       <div className="flex flex-1 min-h-0">
         {/* Left column - Main Content */}
         <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="space-y-8 max-w-4xl">
+          <div className="space-y-8">
             {/* Summary Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {summaryStats.map((stat, idx) => {

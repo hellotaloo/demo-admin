@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronRight,
   Inbox,
-  LayoutGrid,
   Briefcase,
   Phone,
   Settings,
@@ -17,6 +16,7 @@ import {
   Target,
   SlidersHorizontal,
 } from 'lucide-react';
+import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
 import {
   Sidebar,
@@ -49,7 +49,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 // Navigation data
 const mainNavItems = [
-  { name: 'Dashboard', href: '/', icon: LayoutGrid },
+  { name: 'Nieuw gesprek', href: '/', icon: PencilSquareIcon },
 ];
 
 const primaryNavItems = [

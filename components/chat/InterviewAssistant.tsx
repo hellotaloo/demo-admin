@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { RefreshCw, Check, ArrowUp, Square, Wrench, ChevronDown, FileText } from 'lucide-react';
+import { RefreshCw, Check, ArrowUp, Square, Wrench, ChevronDown, FileText, ExternalLink } from 'lucide-react';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import {
   Collapsible,
@@ -64,15 +64,19 @@ function useTypewriter(text: string, enabled: boolean, speed: number = 15) {
 interface InterviewAssistantProps {
   vacancyTitle: string;
   vacancyText: string;
+  vacancySource?: 'salesforce' | 'bullhorn' | 'manual' | null;
+  vacancySourceId?: string | null;
   isGenerated: boolean;
   isGenerating: boolean;
   isSaving?: boolean;
   sessionId: string | null;
   currentStatus: string;
+  /** Thinking content from the initial generation (passed from parent) */
+  generationThinkingContent?: string;
   initialMessage: string;
   onRegenerate: () => void;
   onQuestionsUpdate: (questions: GeneratedQuestion[]) => void;
-  onApprove?: () => void;
+  onApprove?: () => void | Promise<void>;
   externalPrompt?: string;
   onExternalPromptConsumed?: () => void;
 }
@@ -80,11 +84,14 @@ interface InterviewAssistantProps {
 export function InterviewAssistant({ 
   vacancyTitle,
   vacancyText,
+  vacancySource,
+  vacancySourceId,
   isGenerated, 
   isGenerating,
   isSaving = false,
   sessionId,
   currentStatus,
+  generationThinkingContent,
   initialMessage,
   onRegenerate,
   onQuestionsUpdate,
@@ -96,6 +103,7 @@ export function InterviewAssistant({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState('');
+  const [feedbackThinkingContent, setFeedbackThinkingContent] = useState('');
   const [isVacancyOpen, setIsVacancyOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -161,20 +169,36 @@ export function InterviewAssistant({
   const handleSSEEvent = (event: SSEEvent) => {
     if (event.type === 'status') {
       setFeedbackStatus(event.message || '');
+    } else if (event.type === 'thinking') {
+      // Append thinking content as it streams in
+      setFeedbackThinkingContent(prev => prev + (event.content || ''));
     }
   };
 
   const convertToFrontendQuestions = (interview: Interview): GeneratedQuestion[] => {
+    // Debug: Log what the backend sends for change_status
+    console.log('[InterviewAssistant] Backend response - knockout_questions:', 
+      interview.knockout_questions.map(q => ({ id: q.id, change_status: q.change_status }))
+    );
+    console.log('[InterviewAssistant] Backend response - qualification_questions:', 
+      interview.qualification_questions.map(q => ({ id: q.id, change_status: q.change_status }))
+    );
+    
     return [
       ...interview.knockout_questions.map(q => ({
         id: q.id,
         text: q.question,
         type: 'knockout' as const,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
       ...interview.qualification_questions.map(q => ({
         id: q.id,
         text: q.question,
         type: 'qualifying' as const,
+        idealAnswer: q.ideal_answer,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
     ];
   };
@@ -192,6 +216,7 @@ export function InterviewAssistant({
     
     setIsLoading(true);
     setFeedbackStatus('Feedback verwerken...');
+    setFeedbackThinkingContent(''); // Reset thinking content for new feedback
 
     const maxRetries = 3;
     let lastError: Error | null = null;
@@ -204,6 +229,7 @@ export function InterviewAssistant({
         addMessage('assistant', responseMessage || 'Ik heb de vragen aangepast op basis van je feedback.');
         setIsLoading(false);
         setFeedbackStatus('');
+        setFeedbackThinkingContent(''); // Clear thinking content on success
         return; // Success, exit the function
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -224,11 +250,22 @@ export function InterviewAssistant({
     addMessage('assistant', 'Er is een fout opgetreden bij het verwerken van je feedback. Probeer het opnieuw.');
     setIsLoading(false);
     setFeedbackStatus('');
+    setFeedbackThinkingContent(''); // Clear thinking content on error
   };
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     addMessage('assistant', 'De vragen zijn goedgekeurd! Je kunt nu verdergaan met het publiceren van het interview.');
-    onApprove?.();
+    if (onApprove) {
+      try {
+        const result = onApprove();
+        // If it's a promise, await it
+        if (result && typeof result.then === 'function') {
+          await result;
+        }
+      } catch (error) {
+        console.error('Failed to approve:', error);
+      }
+    }
   };
 
   return (
@@ -264,6 +301,17 @@ export function InterviewAssistant({
                   {/* Gradient overlay to indicate scroll */}
                   <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-md" />
                 </div>
+                {vacancySource === 'salesforce' && vacancySourceId && (
+                  <a
+                    href={`https://taloo.lightning.force.com/lightning/r/Vacancy__c/${vacancySourceId}/view`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Bekijk in Salesforce
+                  </a>
+                )}
               </div>
             </CollapsibleContent>
           </div>
@@ -279,7 +327,10 @@ export function InterviewAssistant({
               <span className="text-sm">{currentStatus}</span>
             </div>
           ) : (
-            <ThinkingIndicator />
+            <ThinkingIndicator 
+              message={currentStatus || undefined}
+              thinkingContent={generationThinkingContent || undefined}
+            />
           )
         )}
 
@@ -298,7 +349,10 @@ export function InterviewAssistant({
               <span className="text-sm text-gray-500">{feedbackStatus}</span>
             </div>
           ) : (
-            <ThinkingIndicator />
+            <ThinkingIndicator 
+              message={feedbackStatus || undefined}
+              thinkingContent={feedbackThinkingContent || undefined}
+            />
           )
         )}
         
@@ -320,7 +374,7 @@ export function InterviewAssistant({
             <button
               onClick={handleApprove}
               disabled={isSaving}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? (
                 <>

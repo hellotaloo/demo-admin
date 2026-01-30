@@ -91,7 +91,7 @@ export function ChatInterface({
           </Button>
           <Button 
             variant="soft" 
-            color="green"
+            color="blue"
             size="1" 
             onClick={onApprove}
             disabled={isLoading}

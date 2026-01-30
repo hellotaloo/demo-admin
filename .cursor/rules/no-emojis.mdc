@@ -1,0 +1,14 @@
+---
+description: Avoid using star and brain emojis in responses and code
+alwaysApply: true
+---
+
+# No Star or Brain Emojis
+
+Never use the following emojis in responses, comments, or code:
+- star
+- glowing star
+- sparkles
+- brain
+
+Use plain text or appropriate icons from lucide-react instead.

@@ -30,7 +30,7 @@ export function PopularVacancies({ vacancies, className }: PopularVacanciesProps
           <div key={vacancy.vacancyId} className="group">
             <div className="flex items-center justify-between mb-1">
               <Link 
-                href={`/vacancies/${vacancy.vacancyId}`}
+                href={`/interviews/generate/${vacancy.vacancyId}`}
                 className="text-sm text-gray-700 group-hover:text-gray-900 truncate flex-1 pr-2"
               >
                 <span className="text-gray-400 mr-2">{index + 1}.</span>

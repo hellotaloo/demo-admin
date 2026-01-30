@@ -1,28 +1,12 @@
 'use client';
 
 import { use, useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { InterviewQuestionsPanel } from '@/components/chat/InterviewQuestionsPanel';
 import { InterviewAssistant } from '@/components/chat/InterviewAssistant';
 import { GeneratedQuestion } from '@/components/chat/QuestionListMessage';
-import { 
-  InterviewDashboard, 
-  ApplicationsTable, 
-  ApplicationDetailPane,
-  Application 
-} from '@/components/interview';
 import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { Pencil, Loader2, Phone, MessageCircle } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Loader2, ArrowLeft, Phone, MessageCircle } from 'lucide-react';
 import { 
   generateInterview, 
   reorderQuestions, 
@@ -30,48 +14,20 @@ import {
   Interview,
   PreScreening,
   getVacancy,
-  getApplications,
   getPreScreening,
   savePreScreening 
 } from '@/lib/interview-api';
-import { Vacancy, Application as BackendApplication } from '@/lib/types';
+import { Vacancy } from '@/lib/types';
 import Link from 'next/link';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-// Helper to format seconds to "Xm Ys" format
-function formatInteractionTime(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (minutes === 0) return `${secs}s`;
-  return `${minutes}m ${secs.toString().padStart(2, '0')}s`;
-}
-
-// Convert backend Application to component Application format
-function convertToComponentApplication(app: BackendApplication): Application {
-  return {
-    id: app.id,
-    candidateName: app.candidateName,
-    interactionTime: formatInteractionTime(app.interactionSeconds),
-    interactionSeconds: app.interactionSeconds,
-    completed: app.completed,
-    qualified: app.qualified,
-    timestamp: app.startedAt,
-    synced: app.synced,
-    channel: app.channel,
-    answers: app.answers.map(a => ({
-      questionId: a.questionId,
-      questionText: a.questionText,
-      answer: a.answer,
-      passed: a.passed ?? undefined,
-    })),
-  };
-}
-
-export default function GeneratePreScreeningPage({ params }: PageProps) {
+export default function EditPreScreeningPage({ params }: PageProps) {
   const { id } = use(params);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   
   // Vacancy state
   const [vacancy, setVacancy] = useState<Vacancy | null>(null);
@@ -82,18 +38,11 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   const [existingPreScreening, setExistingPreScreening] = useState<PreScreening | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Applications state (for dashboard view)
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isLoadingApplications, setIsLoadingApplications] = useState(false);
-  
   // Question generation state
   const [questions, setQuestions] = useState<GeneratedQuestion[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGenerated, setIsGenerated] = useState(false);
-  const [isApproved, setIsApproved] = useState(false);
-  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [isAgentOnline, setIsAgentOnline] = useState(false);
-  const [showOfflineDialog, setShowOfflineDialog] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string>('');
   const [thinkingContent, setThinkingContent] = useState<string>('');
@@ -122,6 +71,10 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         if (preScreeningData) {
           setExistingPreScreening(preScreeningData);
           
+          // Set session ID for AI editing - always use vacancy ID since session_id === vacancy_id
+          // The backend auto-creates the session when fetching pre-screening
+          setSessionId(id);
+          
           // Convert pre-screening questions to frontend format
           const loadedQuestions: GeneratedQuestion[] = [
             ...preScreeningData.knockout_questions.map(q => ({
@@ -133,15 +86,14 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
               id: q.id,
               text: q.question_text,
               type: 'qualifying' as const,
+              idealAnswer: q.ideal_answer,
             })),
           ];
           
           setQuestions(loadedQuestions);
           prevQuestionsRef.current = loadedQuestions;
           setIsGenerated(true);
-          setInitialMessage('Je hebt al een pre-screening configuratie opgeslagen. Je kunt de vragen hieronder bekijken en bewerken.');
-          // If vacancy has pre-screening, it means it was approved before
-          setIsApproved(true);
+          setInitialMessage('Laat me weten als je vragen hebt of iets wilt aanpassen of toevoegen!');
           setIsAgentOnline(vacancyData.status === 'agent_created');
         }
       } catch (err) {
@@ -155,60 +107,76 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     fetchVacancyAndPreScreening();
   }, [id]);
 
-  // Fetch applications when entering approved state
-  useEffect(() => {
-    if (!isApproved || !vacancy) return;
-
-    async function fetchApplications() {
-      try {
-        setIsLoadingApplications(true);
-        const data = await getApplications(id);
-        setApplications(data.applications.map(convertToComponentApplication));
-      } catch (err) {
-        console.error('Failed to fetch applications:', err);
-        // Applications might not exist yet - that's okay
-        setApplications([]);
-      } finally {
-        setIsLoadingApplications(false);
-      }
-    }
-
-    fetchApplications();
-  }, [isApproved, vacancy, id]);
-
   // Set document title when vacancy loads
   useEffect(() => {
     if (vacancy) {
-      document.title = `${vacancy.title} - Taloo`;
+      document.title = `${vacancy.title} - Bewerken - Taloo`;
     }
   }, [vacancy?.title]);
 
-  // Get selected application for detail pane
-  const selectedApplication = applications.find(a => a.id === selectedApplicationId) || null;
+  // Check for preloaded prompt from URL params (e.g., from Smart Insights)
+  useEffect(() => {
+    const promptParam = searchParams.get('prompt');
+    if (promptParam && isGenerated && !isGenerating) {
+      setPendingPrompt(promptParam);
+      // Clear the URL param after consuming it
+      const url = new URL(window.location.href);
+      url.searchParams.delete('prompt');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams, isGenerated, isGenerating]);
 
   // Convert backend Interview to frontend GeneratedQuestion[]
   const convertToFrontendQuestions = useCallback((interview: Interview): GeneratedQuestion[] => {
+    // Debug: Log what the backend sends for change_status
+    console.log('[EditPage] Backend response - knockout_questions:', 
+      interview.knockout_questions.map(q => ({ id: q.id, change_status: q.change_status }))
+    );
+    console.log('[EditPage] Backend response - qualification_questions:', 
+      interview.qualification_questions.map(q => ({ id: q.id, change_status: q.change_status }))
+    );
+    
     return [
       ...interview.knockout_questions.map(q => ({
         id: q.id,
         text: q.question,
         type: 'knockout' as const,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
       ...interview.qualification_questions.map(q => ({
         id: q.id,
         text: q.question,
         type: 'qualifying' as const,
+        idealAnswer: q.ideal_answer,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
     ];
   }, []);
 
-  // Handle SSE events for status and thinking updates
+  // Handle SSE events for status updates
   const handleSSEEvent = useCallback((event: SSEEvent) => {
     if (event.type === 'status') {
-      setCurrentStatus(event.message || '');
+      // Only update status if we already have thinking content,
+      // otherwise keep showing "Data verzamelen..."
+      setThinkingContent(prev => {
+        if (prev.length > 0) {
+          // We have thinking content, update the status
+          setCurrentStatus(event.message || 'Analyseren...');
+        }
+        return prev;
+      });
     } else if (event.type === 'thinking') {
       // Append thinking content as it streams in
-      setThinkingContent(prev => prev + (event.content || ''));
+      setThinkingContent(prev => {
+        const newContent = prev + (event.content || '');
+        // When first thinking content arrives, update status to "Analyseren"
+        if (prev.length === 0 && newContent.length > 0) {
+          setCurrentStatus('Analyseren...');
+        }
+        return newContent;
+      });
     }
   }, []);
 
@@ -234,21 +202,24 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         setSessionId(newSessionId);
         setInitialMessage(message);
         const frontendQuestions = convertToFrontendQuestions(interview);
-        // Store for future comparison (don't highlight on initial load)
-        prevQuestionsRef.current = frontendQuestions;
-        setQuestions(frontendQuestions);
+        // Clear changeStatus on initial generation - we only want to show the effect after feedback
+        const questionsWithoutChangeStatus = frontendQuestions.map(q => ({
+          ...q,
+          changeStatus: undefined,
+        }));
+        prevQuestionsRef.current = questionsWithoutChangeStatus;
+        setQuestions(questionsWithoutChangeStatus);
         setIsGenerated(true);
         setIsGenerating(false);
         setCurrentStatus('');
         setThinkingContent(''); // Clear thinking content on success
-        return; // Success, exit the function
+        return;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         console.warn(`Generate interview attempt ${attempt + 1} failed:`, error);
         
-        // If we have more retries, wait with exponential backoff before trying again
         if (attempt < maxRetries - 1) {
-          const backoffMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+          const backoffMs = Math.pow(2, attempt) * 1000;
           setCurrentStatus('Opnieuw proberen...');
           await new Promise(resolve => setTimeout(resolve, backoffMs));
           setCurrentStatus('Data verzamelen...');
@@ -256,7 +227,6 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
       }
     }
 
-    // All retries failed
     console.error('Failed to generate interview after all retries:', lastError);
     setInitialMessage('Er is een fout opgetreden bij het genereren van de vragen. Controleer of de backend draait en probeer het opnieuw.');
     setIsGenerated(true);
@@ -272,52 +242,44 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     }
   }, [vacancy, isGenerated, isGenerating, existingPreScreening, doGenerateInterview]);
 
-  // Detect which questions changed and highlight them
+  // Detect which questions changed and highlight them using change_status from API
   const updateQuestionsWithHighlight = useCallback((newQuestions: GeneratedQuestion[]) => {
-    const prevQuestions = prevQuestionsRef.current;
-    
-    // Find changed or new questions
-    const changedIds: string[] = [];
-    
-    newQuestions.forEach(newQ => {
-      const prevQ = prevQuestions.find(p => p.id === newQ.id);
-      // Highlight if it's new or if the text changed
-      if (!prevQ || prevQ.text !== newQ.text) {
-        changedIds.push(newQ.id);
-      }
-    });
-    
-    // Also highlight questions with new IDs (completely new questions)
-    const newIds = newQuestions
-      .filter(q => !prevQuestions.some(p => p.id === q.id))
+    // Use the changeStatus flag from the API to determine which questions to highlight
+    const changedIds = newQuestions
+      .filter(q => q.changeStatus === 'new' || q.changeStatus === 'updated')
       .map(q => q.id);
     
-    const allChangedIds = [...new Set([...changedIds, ...newIds])];
-    
-    if (allChangedIds.length > 0) {
-      setHighlightedIds(allChangedIds);
+    if (changedIds.length > 0) {
+      setHighlightedIds(changedIds);
       
-      // Clear any existing timeout
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current);
       }
       
-      // Remove highlights after 5 seconds
       highlightTimeoutRef.current = setTimeout(() => {
         setHighlightedIds([]);
+        // Clear changeStatus after timeout so labels don't persist
+        setQuestions(prev => prev.map(q => ({
+          ...q,
+          changeStatus: undefined,
+        })));
       }, 5000);
     }
     
-    // Update the ref for next comparison
-    prevQuestionsRef.current = newQuestions;
-    setQuestions(newQuestions);
+    // Keep changeStatus in questions so the label can display, but clear isModified
+    const questionsToStore = newQuestions.map(q => ({
+      ...q,
+      isModified: undefined,
+    }));
+    
+    prevQuestionsRef.current = questionsToStore;
+    setQuestions(questionsToStore);
   }, []);
 
   const handleQuestionsUpdate = (newQuestions: GeneratedQuestion[]) => {
     updateQuestionsWithHighlight(newQuestions);
   };
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (highlightTimeoutRef.current) {
@@ -327,7 +289,6 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   }, []);
 
   const handleRegenerate = async () => {
-    // Regenerate by calling the API again (without session to get fresh questions)
     await doGenerateInterview();
   };
 
@@ -344,7 +305,11 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
       
       const qualificationQuestions = questions
         .filter(q => q.type === 'qualifying')
-        .map(q => ({ id: q.id, question: q.text }));
+        .map(q => ({ 
+          id: q.id, 
+          question: q.text,
+          ideal_answer: q.idealAnswer,
+        }));
       
       // Get intro and actions from existing config or use defaults
       const intro = existingPreScreening?.intro || 
@@ -354,17 +319,21 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
       const finalAction = existingPreScreening?.final_action || 
         "Perfect! We plannen een gesprek met de recruiter.";
       
+      console.log('Saving pre-screening to database...');
+      
       await savePreScreening(vacancy.id, {
         intro,
         knockout_questions: knockoutQuestions,
         knockout_failed_action: knockoutFailedAction,
         qualification_questions: qualificationQuestions,
         final_action: finalAction,
-        approved_ids: questions.map(q => q.id), // All current questions are approved
+        approved_ids: questions.map(q => q.id),
       });
       
-      setIsApproved(true);
-      setIsAgentOnline(true);
+      console.log('Pre-screening saved successfully!');
+      
+      // Navigate to the view page after saving
+      router.push(`/pre-screening/view/${id}`);
     } catch (error) {
       console.error('Failed to save pre-screening:', error);
       alert(error instanceof Error ? error.message : 'Opslaan mislukt. Probeer het opnieuw.');
@@ -373,36 +342,24 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     }
   };
 
-  const handleSelectApplication = (applicationId: string) => {
-    setSelectedApplicationId(applicationId);
-  };
-
-  const handleCloseDetail = () => {
-    setSelectedApplicationId(null);
-  };
-
   const handleQuestionClick = (question: GeneratedQuestion, index: number) => {
     const typeLabel = question.type === 'knockout' ? 'knockout vraag' : 'kwalificatie vraag';
     setPendingPrompt(`Ik heb een vraag over ${typeLabel} ${index}: `);
   };
 
   const handleReorder = async (reorderedQuestions: GeneratedQuestion[]) => {
-    // Don't call API if no session yet
     if (!sessionId) {
       setQuestions(reorderedQuestions);
       prevQuestionsRef.current = reorderedQuestions;
       return;
     }
 
-    // Save current state for rollback
     const previousQuestions = [...questions];
     const previousRef = [...prevQuestionsRef.current];
 
-    // Optimistic update - update UI immediately
     setQuestions(reorderedQuestions);
     prevQuestionsRef.current = reorderedQuestions;
 
-    // Extract the knockout and qualification order arrays
     const knockoutOrder = reorderedQuestions
       .filter(q => q.type === 'knockout')
       .map(q => q.id);
@@ -415,25 +372,22 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         await reorderQuestions(sessionId, knockoutOrder, qualificationOrder);
-        return; // Success, exit the function
+        return;
       } catch (error) {
         console.warn(`Reorder questions attempt ${attempt + 1} failed:`, error);
         
-        // If we have more retries, wait with exponential backoff before trying again
         if (attempt < maxRetries - 1) {
-          const backoffMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+          const backoffMs = Math.pow(2, attempt) * 1000;
           await new Promise(resolve => setTimeout(resolve, backoffMs));
         }
       }
     }
 
-    // All retries failed - rollback
     console.error('Failed to reorder questions after all retries');
     setQuestions(previousQuestions);
     prevQuestionsRef.current = previousRef;
   };
 
-  // Loading state
   if (isLoadingVacancy) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-40px)]">
@@ -443,138 +397,27 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
     );
   }
 
-  // Error/not found state
   if (vacancyError || !vacancy) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-40px)]">
         <p className="text-gray-500 mb-4">Vacancy not found</p>
-        <Link href="/pre-screenings" className="text-blue-500 hover:underline">
-          Back to pre-screenings
+        <Link href="/pre-screening" className="text-blue-500 hover:underline">
+          Back to pre-screening
         </Link>
       </div>
     );
   }
 
-  // Approved state - Dashboard view
-  if (isApproved) {
-    return (
-      <div className="flex h-[calc(100vh-40px)] -m-6">
-        {/* Left column - Dashboard */}
-        <div className="flex-1 overflow-y-auto p-6 min-h-0">
-          {/* Header with vacancy info */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold text-gray-900">{vacancy.title}</h1>
-              <span className="text-sm text-gray-400">•</span>
-              <span className="text-sm text-gray-500">{vacancy.company}</span>
-              <span className="text-sm text-gray-400">•</span>
-              <span className="text-sm text-gray-500">{vacancy.location}</span>
-              <span className={`inline-flex items-center ml-2 px-2 py-0.5 rounded-full text-xs font-medium ${
-                isAgentOnline 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-gray-100 text-gray-500'
-              }`}>
-                {isAgentOnline ? 'Actief' : 'Offline'}
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsApproved(false)}
-                className="gap-1.5 font-normal"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                Vragen bewerken
-              </Button>
-              <div className="flex items-center gap-2">
-                <label htmlFor="agent-online" className="text-sm text-gray-600">
-                  Agent online
-                </label>
-                <Switch
-                  id="agent-online"
-                  checked={isAgentOnline}
-                  onCheckedChange={(checked) => {
-                    if (!checked) {
-                      setShowOfflineDialog(true);
-                    } else {
-                      setIsAgentOnline(true);
-                    }
-                  }}
-                  className="data-[state=checked]:bg-green-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Offline confirmation dialog */}
-          <AlertDialog open={showOfflineDialog} onOpenChange={setShowOfflineDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Agent offline zetten?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Als je de agent offline zet, worden nieuwe sollicitaties niet meer automatisch verwerkt. 
-                  Kandidaten kunnen dan geen interview meer starten voor deze vacature.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    setIsAgentOnline(false);
-                    setShowOfflineDialog(false);
-                  }}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  Offline zetten
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {/* Loading applications */}
-          {isLoadingApplications ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-              <span className="ml-2 text-gray-500">Loading applications...</span>
-            </div>
-          ) : (
-            <>
-              {/* Dashboard widgets */}
-              <InterviewDashboard applications={applications} />
-
-              {/* Applications table */}
-              <div>
-                <h2 className="text-sm font-semibold text-gray-700 mb-3">Sollicitaties</h2>
-                <ApplicationsTable 
-                  applications={applications}
-                  selectedId={selectedApplicationId}
-                  onSelectApplication={handleSelectApplication}
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Right column - Detail pane (slides in when application selected) */}
-        {selectedApplicationId && (
-          <div className="hidden lg:flex w-[500px] flex-col border-l border-gray-200 min-h-0">
-            <ApplicationDetailPane 
-              application={selectedApplication}
-              onClose={handleCloseDetail}
-            />
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Editing state - Flow builder view
   return (
     <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
-      {/* Header with vacancy info - full width */}
       <div className="flex items-center justify-between px-6 py-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
           <h1 className="text-lg font-semibold text-gray-900">{vacancy.title}</h1>
           <span className="text-sm text-gray-400">•</span>
           <span className="text-sm text-gray-500">{vacancy.company}</span>
@@ -635,12 +478,9 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Full-width divider line */}
       <div className="border-t border-gray-200" />
 
-      {/* Content area below the line */}
       <div className="flex flex-1 min-h-0">
-        {/* Left column - Interview Questions Panel */}
         <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="max-w-[720px] -mt-3">
             <InterviewQuestionsPanel 
@@ -653,11 +493,12 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Right column - Chat Assistant */}
         <div className="hidden lg:flex w-[500px] flex-col border-l border-gray-200 min-h-0">
           <InterviewAssistant
             vacancyTitle={vacancy.title}
             vacancyText={vacancy.description}
+            vacancySource={vacancy.source}
+            vacancySourceId={vacancy.sourceId}
             isGenerated={isGenerated}
             isGenerating={isGenerating}
             isSaving={isSaving}

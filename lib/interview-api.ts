@@ -3,6 +3,9 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:808
 export interface InterviewQuestion {
   id: string;
   question: string;
+  ideal_answer?: string;
+  is_modified?: boolean;
+  change_status?: 'new' | 'updated' | 'unchanged';
 }
 
 export interface Interview {
@@ -175,7 +178,7 @@ interface BackendVacancy {
   company: string;
   location: string;
   description: string;
-  status: 'new' | 'in_progress' | 'agent_created' | 'archived';
+  status: 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived';
   created_at: string;
   archived_at: string | null;
   source: 'salesforce' | 'bullhorn' | 'manual' | null;
@@ -352,6 +355,7 @@ export async function getApplications(
 export interface PreScreeningQuestionInput {
   id: string;      // Client ID for matching approved_ids
   question: string;
+  ideal_answer?: string;
 }
 
 export interface PreScreeningInput {
@@ -369,6 +373,7 @@ export interface PreScreeningQuestion {
   question_type: 'knockout' | 'qualification';
   position: number;
   question_text: string;
+  ideal_answer?: string;
   is_approved: boolean;
 }
 
@@ -383,6 +388,9 @@ export interface PreScreening {
   status: 'draft' | 'active' | 'archived';
   created_at: string;
   updated_at: string;
+  // Session fields for AI editing (auto-created by backend)
+  session_id?: string;
+  interview?: Interview;
 }
 
 export interface SavePreScreeningResponse {

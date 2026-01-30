@@ -23,6 +23,66 @@
   }
 }
 
+/* Subtle pulse animation for AI thinking content */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Pulse opacity animation for question highlights (Variant 1 & 2) */
+@keyframes pulse-opacity {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Pulse with green background transition (Variant 3) */
+@keyframes pulse-green-bg {
+  0%, 100% {
+    background-color: #dcfce7; /* green-100 */
+    opacity: 1;
+  }
+  50% {
+    background-color: #f0fdf4; /* green-50 */
+    opacity: 0.85;
+  }
+}
+
+/* Slide in from right with opacity (Variant 6) */
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(70px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Soft pulse for new question highlight */
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+  50% {
+    opacity: 0.82;
+    box-shadow: 0 0 16px 4px rgba(59, 130, 246, 0.25);
+  }
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

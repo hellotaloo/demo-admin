@@ -4,6 +4,9 @@ export interface GeneratedQuestion {
   id: string;
   text: string;
   type: 'knockout' | 'qualifying';
+  idealAnswer?: string;
+  isModified?: boolean;
+  changeStatus?: 'new' | 'updated' | 'unchanged';
 }
 
 interface QuestionListMessageProps {

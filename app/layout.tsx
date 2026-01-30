@@ -20,6 +20,14 @@ const hedvigLetters = Hedvig_Letters_Serif({
 export const metadata: Metadata = {
   title: "Taloo Admin",
   description: "Manage your WhatsApp and voice agents",
+  icons: {
+    icon: [
+      { url: "/favicon/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/favicon/apple-touch-icon.png",
+  },
+  manifest: "/favicon/site.webmanifest",
 };
 
 export default function RootLayout({
@@ -33,9 +41,9 @@ export default function RootLayout({
         <Theme accentColor="blue" grayColor="slate" radius="medium" scaling="100%">
           <SidebarProvider>
             <AppSidebar />
-            <SidebarInset className="overflow-auto">
+            <SidebarInset className="flex flex-col h-screen overflow-hidden">
               <Header />
-              <div className="flex-1 p-6 bg-white">
+              <div className="flex-1 overflow-auto p-6 bg-white">
                 {children}
               </div>
             </SidebarInset>

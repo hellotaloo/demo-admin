@@ -147,7 +147,7 @@ export default function FinetunePage() {
   const availableCategories = categoriesByAgent[selectedAgent];
 
   return (
-    <div className="space-y-10 max-w-3xl mx-auto">
+    <div className="space-y-10 max-w-4xl mx-auto">
       {/* Header */}
       <div className="space-y-1">
         <Heading size="6" className="text-foreground">

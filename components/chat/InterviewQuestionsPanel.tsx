@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Calendar, GripVertical, UserX, Zap } from 'lucide-react';
+import { Check, ChevronDown, GripVertical, MessagesSquare, Pencil, Plus, UserX, Zap } from 'lucide-react';
 import { GeneratedQuestion } from './QuestionListMessage';
 import {
   DndContext,
@@ -28,9 +28,10 @@ interface InterviewQuestionsPanelProps {
   highlightedIds?: string[];
   onQuestionClick?: (question: GeneratedQuestion, index: number) => void;
   onReorder?: (questions: GeneratedQuestion[]) => void;
+  onAddQuestion?: (text: string, type: 'knockout' | 'qualifying') => void;
 }
 
-export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder }: InterviewQuestionsPanelProps) {
+export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion }: InterviewQuestionsPanelProps) {
   const knockoutQuestions = questions.filter(q => q.type === 'knockout');
   const qualifyingQuestions = questions.filter(q => q.type === 'qualifying');
   const hasQuestions = questions.length > 0;
@@ -187,6 +188,11 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   onClick={onQuestionClick}
                 />
               ))}
+              <AddQuestionInput 
+                type="knockout" 
+                onAdd={onAddQuestion}
+                placeholder="Voeg knock-out vraag toe..."
+              />
             </div>
           </SortableContext>
         </DndContext>
@@ -237,6 +243,11 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   onClick={onQuestionClick}
                 />
               ))}
+              <AddQuestionInput 
+                type="qualifying" 
+                onAdd={onAddQuestion}
+                placeholder="Voeg kwalificerende vraag toe..."
+              />
             </div>
           </SortableContext>
         </DndContext>
@@ -245,7 +256,9 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
       {/* Outcome */}
       <TimelineItem animationDelay={outcomeDelay}>
         <div className="bg-slate-700 rounded-lg p-3 flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-slate-400" />
+          <div className="w-5 h-5 bg-white rounded flex items-center justify-center flex-shrink-0">
+            <Image src="/outlook.png" alt="Outlook" width={14} height={14} className="object-contain" />
+          </div>
           <p className="text-sm text-white">Plan interview met recruiter</p>
         </div>
       </TimelineItem>
@@ -422,6 +435,83 @@ function SkeletonCard({ isAnimating = false }: { isAnimating?: boolean }) {
   );
 }
 
+// New question highlight styles: slide-in + blue bg + soft pulse
+const NEW_QUESTION_HIGHLIGHT_CLASSES = 'bg-blue-100 animate-[slide-in-right_1.2s_cubic-bezier(0.16,1,0.3,1)_0s_backwards,soft-pulse_3s_ease-in-out_1.2s_infinite]';
+// Updated question highlight styles: amber bg + soft pulse only (no slide-in)
+const UPDATED_QUESTION_HIGHLIGHT_CLASSES = 'bg-amber-100 animate-[soft-pulse_3s_ease-in-out_infinite]';
+const NORMAL_QUESTION_CLASSES = 'bg-gray-100 transition-all duration-500';
+
+function AddQuestionInput({ 
+  type, 
+  onAdd,
+  placeholder = 'Voeg een vraag toe...'
+}: { 
+  type: 'knockout' | 'qualifying';
+  onAdd?: (text: string, type: 'knockout' | 'qualifying') => void;
+  placeholder?: string;
+}) {
+  const [value, setValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+
+  const handleSubmit = () => {
+    if (value.trim() && onAdd) {
+      onAdd(value.trim(), type);
+      setValue('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const canSubmit = value.trim().length > 0;
+
+  return (
+    <div 
+      className={`rounded-lg p-2 flex items-center gap-2 border-2 border-dashed transition-all duration-200 ${
+        isFocused 
+          ? 'border-blue-300 bg-blue-50' 
+          : 'border-gray-200 bg-white hover:border-gray-300'
+      }`}
+    >
+      <div className="shrink-0 p-0.5 -ml-1">
+        <Plus className={`w-4 h-4 ${isFocused ? 'text-blue-400' : 'text-gray-300'}`} />
+      </div>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => {
+          // Delay blur to allow button click
+          setTimeout(() => setIsFocused(false), 150);
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 bg-transparent outline-none"
+      />
+      {isFocused && (
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!canSubmit}
+          className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-200 ${
+            canSubmit 
+              ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' 
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
+        >
+          <Check className="w-3 h-3" />
+          <span>add</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function SortableQuestionItem({ 
   question, 
   index, 
@@ -438,6 +528,8 @@ function SortableQuestionItem({
   onClick?: (question: GeneratedQuestion, index: number) => void;
 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [showChangeLabel, setShowChangeLabel] = useState(isHighlighted);
+  const [isIdealAnswerExpanded, setIsIdealAnswerExpanded] = useState(false);
   const {
     attributes,
     listeners,
@@ -455,64 +547,133 @@ function SortableQuestionItem({
     return () => clearTimeout(timer);
   }, [animationDelay]);
 
+  // When isHighlighted becomes true, show the label and start 5s timer
+  useEffect(() => {
+    if (isHighlighted) {
+      setShowChangeLabel(true);
+      const timer = setTimeout(() => {
+        setShowChangeLabel(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isHighlighted]);
+
+  // Determine highlight class based on changeStatus
+  const isNew = question.changeStatus === 'new';
+  const isUpdated = question.changeStatus === 'updated';
+  
+  // Skip the initial fade-in-up animation only for 'new' questions
+  // because the slide-in-right animation handles the entrance
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    ...(hasAnimated ? {} : { animation: `fade-in-up 0.6s ease-out ${animationDelay}ms backwards` }),
+    ...((hasAnimated || isNew) ? {} : { animation: `fade-in-up 0.6s ease-out ${animationDelay}ms backwards` }),
   };
+
+  // Use appropriate highlight styles based on changeStatus
+  const baseClasses = isNew
+    ? NEW_QUESTION_HIGHLIGHT_CLASSES
+    : isUpdated
+    ? UPDATED_QUESTION_HIGHLIGHT_CLASSES
+    : NORMAL_QUESTION_CLASSES;
+
+  const hasIdealAnswer = variant === 'qualifying' && question.idealAnswer;
+
+  const handleIdealAnswerToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsIdealAnswerExpanded(!isIdealAnswerExpanded);
+  };
+
+  const handleChatClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick?.(question, index);
+  };
+
+  const handleCardClick = () => {
+    // For qualifying questions with ideal answer, clicking the card toggles collapse
+    if (hasIdealAnswer) {
+      setIsIdealAnswerExpanded(!isIdealAnswerExpanded);
+    }
+  };
+
+  // Determine label text and styling based on change_status
+  const changeStatus = question.changeStatus;
+  const labelConfig = changeStatus === 'new' 
+    ? { text: 'new', className: 'text-blue-600 bg-blue-200' }
+    : changeStatus === 'updated'
+    ? { text: 'updated', className: 'text-amber-600 bg-amber-200' }
+    : null;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-gray-100 rounded-lg p-2 flex items-center gap-2 group ${
-        isHighlighted 
-          ? 'ring-2 ring-orange-400 ring-opacity-75 shadow-[0_0_10px_rgba(251,146,60,0.4)] transition-shadow duration-500' 
-          : 'ring-0 ring-transparent shadow-none transition-shadow duration-500'
-      } ${isDragging ? 'opacity-60 shadow-lg z-50' : 'opacity-100'} ${onClick ? 'cursor-pointer hover:bg-gray-200' : ''}`}
-      onClick={() => onClick?.(question, index)}
+      className={`rounded-lg p-2 group ${baseClasses} ${isDragging ? 'opacity-60 shadow-lg z-50' : ''} ${hasIdealAnswer ? 'cursor-pointer' : ''}`}
+      onClick={handleCardClick}
     >
-      <button
-        className="shrink-0 p-0.5 -ml-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none self-center"
-        {...attributes}
-        {...listeners}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className="w-4 h-4" />
-      </button>
-      <p className="text-sm text-gray-700 flex-1">{question.text}</p>
+      <div className="flex items-center gap-2">
+        <button
+          className="shrink-0 p-0.5 -ml-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none self-center"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          <p className="text-sm text-gray-700 flex-1">{question.text}</p>
+          {showChangeLabel && labelConfig && (
+            <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded animate-[pulse-opacity_2s_ease-in-out_infinite] transition-opacity duration-300 ${labelConfig.className}`}>
+              {labelConfig.text}
+            </span>
+          )}
+          {/* Action icons - visible on hover */}
+          <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Chat icon - ask about this question */}
+            {onClick && (
+              <button
+                onClick={handleChatClick}
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                title="Vraag stellen over deze vraag"
+              >
+                <MessagesSquare className="w-4 h-4" />
+              </button>
+            )}
+            {/* Edit icon - edit this question (functionality to be added) */}
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+              title="Vraag bewerken"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Chevron for qualifying questions - always visible */}
+          {hasIdealAnswer && (
+            <button
+              onClick={handleIdealAnswerToggle}
+              className="shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              title="Ideaal antwoord"
+            >
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isIdealAnswerExpanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Collapsible ideal answer section */}
+      {hasIdealAnswer && (
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            isIdealAnswerExpanded ? 'max-h-40 opacity-100 mt-2' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="ml-6 pl-2 border-l-2 border-amber-200">
+            <p className="text-sm text-gray-500 leading-relaxed">{question.idealAnswer}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function QuestionItem({ 
-  question, 
-  index, 
-  variant,
-  isHighlighted = false,
-  animationDelay = 0,
-  onClick,
-}: { 
-  question: GeneratedQuestion; 
-  index: number;
-  variant: 'knockout' | 'qualifying';
-  isHighlighted?: boolean;
-  animationDelay?: number;
-  onClick?: (question: GeneratedQuestion, index: number) => void;
-}) {
-  return (
-    <div 
-      className={`bg-gray-100 rounded-lg p-2 ${
-        isHighlighted 
-          ? 'ring-2 ring-orange-400 ring-opacity-75 shadow-[0_0_10px_rgba(251,146,60,0.4)] transition-all duration-500' 
-          : 'ring-0 ring-transparent shadow-none transition-all duration-500'
-      } ${onClick ? 'cursor-pointer hover:bg-gray-200 transition-colors' : ''}`}
-      style={{ 
-        animation: `fade-in-up 0.6s ease-out ${animationDelay}ms backwards`
-      }}
-      onClick={() => onClick?.(question, index)}
-    >
-      <p className="text-sm text-gray-700">{question.text}</p>
-    </div>
-  );
-}

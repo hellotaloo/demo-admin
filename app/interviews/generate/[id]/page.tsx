@@ -65,6 +65,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
   const [showOfflineDialog, setShowOfflineDialog] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [currentStatus, setCurrentStatus] = useState<string>('');
+  const [thinkingContent, setThinkingContent] = useState<string>('');
   const [initialMessage, setInitialMessage] = useState<string>('');
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
@@ -89,6 +90,10 @@ export default function GenerateInterviewPage({ params }: PageProps) {
         // If we have an existing pre-screening, load the questions from it
         if (preScreeningData) {
           setExistingPreScreening(preScreeningData);
+          
+          // Set session ID for AI editing - always use vacancy ID since session_id === vacancy_id
+          // The backend auto-creates the session when fetching pre-screening
+          setSessionId(id);
           
           // Convert pre-screening questions to frontend format
           const loadedQuestions: GeneratedQuestion[] = [
@@ -140,19 +145,42 @@ export default function GenerateInterviewPage({ params }: PageProps) {
         id: q.id,
         text: q.question,
         type: 'knockout' as const,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
       ...interview.qualification_questions.map(q => ({
         id: q.id,
         text: q.question,
         type: 'qualifying' as const,
+        idealAnswer: q.ideal_answer,
+        isModified: q.is_modified,
+        changeStatus: q.change_status,
       })),
     ];
   }, []);
 
-  // Handle SSE events for status updates
+  // Handle SSE events for status and thinking updates
   const handleSSEEvent = useCallback((event: SSEEvent) => {
     if (event.type === 'status') {
-      setCurrentStatus(event.message || '');
+      // Only update status if we already have thinking content,
+      // otherwise keep showing "Data verzamelen..."
+      setThinkingContent(prev => {
+        if (prev.length > 0) {
+          // We have thinking content, update the status
+          setCurrentStatus(event.message || 'Analyseren...');
+        }
+        return prev;
+      });
+    } else if (event.type === 'thinking') {
+      // Append thinking content as it streams in
+      setThinkingContent(prev => {
+        const newContent = prev + (event.content || '');
+        // When first thinking content arrives, update status to "Analyseren"
+        if (prev.length === 0 && newContent.length > 0) {
+          setCurrentStatus('Analyseren...');
+        }
+        return newContent;
+      });
     }
   }, []);
 
@@ -161,7 +189,8 @@ export default function GenerateInterviewPage({ params }: PageProps) {
     if (!vacancy) return;
     
     setIsGenerating(true);
-    setCurrentStatus('Vacature analyseren...');
+    setCurrentStatus('Data verzamelen...');
+    setThinkingContent(''); // Reset thinking content for new generation
 
     const maxRetries = 3;
     let lastError: Error | null = null;
@@ -177,12 +206,17 @@ export default function GenerateInterviewPage({ params }: PageProps) {
         setSessionId(newSessionId);
         setInitialMessage(message);
         const frontendQuestions = convertToFrontendQuestions(interview);
-        // Store for future comparison (don't highlight on initial load)
-        prevQuestionsRef.current = frontendQuestions;
-        setQuestions(frontendQuestions);
+        // Clear changeStatus on initial generation - we only want to show the effect after feedback
+        const questionsWithoutChangeStatus = frontendQuestions.map(q => ({
+          ...q,
+          changeStatus: undefined,
+        }));
+        prevQuestionsRef.current = questionsWithoutChangeStatus;
+        setQuestions(questionsWithoutChangeStatus);
         setIsGenerated(true);
         setIsGenerating(false);
         setCurrentStatus('');
+        setThinkingContent(''); // Clear thinking content on success
         return; // Success, exit the function
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -193,7 +227,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
           const backoffMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
           setCurrentStatus('Opnieuw proberen...');
           await new Promise(resolve => setTimeout(resolve, backoffMs));
-          setCurrentStatus('Vacature analyseren...');
+          setCurrentStatus('Data verzamelen...');
         }
       }
     }
@@ -204,6 +238,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
     setIsGenerated(true);
     setIsGenerating(false);
     setCurrentStatus('');
+    setThinkingContent(''); // Clear thinking content on error
   }, [vacancy, handleSSEEvent, convertToFrontendQuestions]);
 
   // Auto-generate questions when vacancy loads (only if no existing pre-screening)
@@ -557,6 +592,7 @@ export default function GenerateInterviewPage({ params }: PageProps) {
             isSaving={isSaving}
             sessionId={sessionId}
             currentStatus={currentStatus}
+            generationThinkingContent={thinkingContent}
             initialMessage={initialMessage}
             onRegenerate={handleRegenerate}
             onQuestionsUpdate={handleQuestionsUpdate}
