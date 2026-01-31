@@ -24,6 +24,10 @@ export function useScreeningChat(vacancyId: string) {
   const [isStarted, setIsStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const messageIdCounter = useRef(0);
+  
+  // Use refs for guards to avoid stale closure issues
+  const isStartedRef = useRef(false);
+  const isStartingRef = useRef(false);
 
   const getBackendUrl = () => {
     return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
@@ -154,18 +158,21 @@ export function useScreeningChat(vacancyId: string) {
   }, [vacancyId, sessionId, addMessage]);
 
   const startConversation = useCallback(async (candidateName: string = 'Laurijn'): Promise<void> => {
-    // Prevent duplicate starts
-    if (isStarting || isStarted) {
+    // Prevent duplicate starts - use refs to avoid stale closure issues
+    if (isStartingRef.current || isStartedRef.current) {
       return;
     }
+    isStartingRef.current = true;
+    isStartedRef.current = true;
     setIsStarting(true);
     setIsStarted(true);
     try {
       await sendMessage('START', candidateName);
     } finally {
+      isStartingRef.current = false;
       setIsStarting(false);
     }
-  }, [sendMessage, isStarting, isStarted]);
+  }, [sendMessage]);
 
   const resetChat = useCallback(() => {
     setMessages([]);
@@ -173,6 +180,9 @@ export function useScreeningChat(vacancyId: string) {
     setError(null);
     setIsStarted(false);
     setIsStarting(false);
+    // Reset refs immediately (no closure issues)
+    isStartedRef.current = false;
+    isStartingRef.current = false;
     messageIdCounter.current = 0;
   }, []);
 

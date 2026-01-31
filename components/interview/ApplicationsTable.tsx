@@ -16,6 +16,8 @@ interface ApplicationsTableProps {
   applications: Application[];
   selectedId: string | null;
   onSelectApplication: (id: string) => void;
+  isPublished?: boolean;
+  onPublishClick?: () => void;
 }
 
 function formatDate(dateString: string) {
@@ -26,15 +28,35 @@ function formatDate(dateString: string) {
 export function ApplicationsTable({ 
   applications, 
   selectedId,
-  onSelectApplication 
+  onSelectApplication,
+  isPublished = true,
+  onPublishClick,
 }: ApplicationsTableProps) {
   if (applications.length === 0) {
+    // Show different empty state based on whether pre-screening is published
+    if (!isPublished && onPublishClick) {
+      return (
+        <button 
+          type="button"
+          onClick={onPublishClick}
+          className="w-full text-center py-12 rounded-lg border-2 border-dashed border-gray-200 hover:border-green-300 hover:bg-green-50/50 transition-colors group cursor-pointer"
+        >
+          <div className="w-12 h-12 rounded-full bg-gray-100 group-hover:bg-green-100 flex items-center justify-center mx-auto mb-3 transition-colors">
+            <Users className="w-6 h-6 text-gray-400 group-hover:text-green-500 transition-colors" />
+          </div>
+          <p className="text-sm text-gray-500 group-hover:text-green-600 transition-colors">
+            Klik hier om de pre-screening te publiceren
+          </p>
+        </button>
+      );
+    }
+    
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
           <Users className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">Nog geen sollicitaties ontvangen</p>
+        <p className="text-sm text-gray-500">Nog geen kandidaten ontvangen</p>
       </div>
     );
   }

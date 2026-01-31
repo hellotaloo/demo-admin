@@ -8,6 +8,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Mail, MessageCircle, Phone, X } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  initiateOutboundScreening,
+  isValidPhoneNumber,
+  formatPhoneNumber,
+  getScreeningErrorMessage,
+  ScreeningChannel,
+} from '@/lib/screening-api';
 
 interface TriggerInterviewDialogProps {
   open: boolean;
@@ -29,35 +37,81 @@ export function TriggerInterviewDialog({
   hasWhatsApp,
   hasVoice,
 }: TriggerInterviewDialogProps) {
+  // Email section fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [emailValue, setEmailValue] = useState('');
+  // Phone section fields
+  const [phoneFirstName, setPhoneFirstName] = useState('');
+  const [phoneLastName, setPhoneLastName] = useState('');
   const [phoneValue, setPhoneValue] = useState('+32 ');
   // Default to whichever channel is available
   const defaultPhoneMethod: PhoneContactMethod = hasWhatsApp ? 'whatsapp' : 'phone';
   const [phoneContactMethod, setPhoneContactMethod] = useState<PhoneContactMethod>(defaultPhoneMethod);
   const [isSubmitting, setIsSubmitting] = useState<ApplicationMethod | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   
   const hasPhoneOption = hasWhatsApp || hasVoice;
   const hasBothPhoneOptions = hasWhatsApp && hasVoice;
 
   const handleSubmit = async (method: ApplicationMethod) => {
     setIsSubmitting(method);
+    setPhoneError(null);
     
-    // TODO: Connect to actual endpoints later
-    // For now just simulate a delay and close
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Handle email separately (not part of outbound screening API)
+    if (method === 'email') {
+      // TODO: Connect to email endpoint later
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Trigger interview via email:', { vacancyId, firstName, lastName, email: emailValue });
+      setIsSubmitting(null);
+      onOpenChange(false);
+      setFirstName('');
+      setLastName('');
+      setEmailValue('');
+      return;
+    }
     
-    console.log('Trigger interview:', {
-      method,
-      vacancyId,
-      value: method === 'email' ? emailValue : phoneValue,
-    });
+    // Handle phone/WhatsApp via outbound screening API
+    const formattedPhone = formatPhoneNumber(phoneValue);
     
-    setIsSubmitting(null);
-    onOpenChange(false);
+    // Validate phone number
+    if (!isValidPhoneNumber(formattedPhone)) {
+      setPhoneError('Ongeldig telefoonnummer formaat. Gebruik internationaal formaat (bijv. +32471234567).');
+      setIsSubmitting(null);
+      return;
+    }
     
-    // Reset values
-    setEmailValue('');
-    setPhoneValue('+32 ');
+    // Map method to API channel
+    const channel: ScreeningChannel = method === 'whatsapp' ? 'whatsapp' : 'voice';
+    
+    try {
+      const result = await initiateOutboundScreening({
+        vacancy_id: vacancyId,
+        channel,
+        phone_number: formattedPhone,
+        candidate_name: phoneFirstName || undefined,
+      });
+      
+      if (result.success) {
+        // Show success toast
+        if (channel === 'voice') {
+          toast.success('De kandidaat wordt nu gebeld');
+        } else {
+          toast.success('WhatsApp bericht verzonden!');
+        }
+        
+        // Close dialog and reset
+        onOpenChange(false);
+        setPhoneFirstName('');
+        setPhoneLastName('');
+        setPhoneValue('+32 ');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Er ging iets mis';
+      setPhoneError(getScreeningErrorMessage(errorMessage));
+    } finally {
+      setIsSubmitting(null);
+    }
   };
 
   return (
@@ -89,6 +143,22 @@ export function TriggerInterviewDialog({
               Alleen een e-mailadres is nodig. We controleren of je al geregistreerd bent en nemen je mee naar de volgende stap.
             </p>
             <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  placeholder="Voornaam"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                />
+                <input
+                  type="text"
+                  placeholder="Achternaam"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                />
+              </div>
               <input
                 type="email"
                 placeholder="jouw@email.com"
@@ -98,7 +168,7 @@ export function TriggerInterviewDialog({
               />
               <button
                 onClick={() => handleSubmit('email')}
-                disabled={!emailValue || isSubmitting !== null}
+                disabled={!emailValue || !firstName || !lastName || isSubmitting !== null}
                 className="w-full py-3 px-4 rounded-lg bg-[#CDFE00] text-gray-900 font-medium hover:bg-[#bce900] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting === 'email' ? 'Bezig...' : 'Doorgaan met e-mail'}
@@ -158,7 +228,25 @@ export function TriggerInterviewDialog({
               )}
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 bg-white">
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    placeholder="Voornaam"
+                    value={phoneFirstName}
+                    onChange={(e) => setPhoneFirstName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Achternaam"
+                    value={phoneLastName}
+                    onChange={(e) => setPhoneLastName(e.target.value)}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-200 text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#CDFE00]/50 focus:border-[#CDFE00]"
+                  />
+                </div>
+                <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border bg-white ${
+                  phoneError ? 'border-red-300' : 'border-gray-200'
+                }`}>
                   {/* Belgian flag */}
                   <div className="flex items-center gap-1.5 shrink-0">
                     <div className="w-6 h-4 rounded-sm overflow-hidden flex">
@@ -170,14 +258,25 @@ export function TriggerInterviewDialog({
                   <input
                     type="tel"
                     value={phoneValue}
-                    onChange={(e) => setPhoneValue(e.target.value)}
+                    onChange={(e) => {
+                      setPhoneValue(e.target.value);
+                      setPhoneError(null); // Clear error on input change
+                    }}
                     className="flex-1 text-gray-700 focus:outline-none bg-transparent"
                     placeholder="+32 XXX XX XX XX"
                   />
                 </div>
+                
+                {/* Error message */}
+                {phoneError && (
+                  <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                    {phoneError}
+                  </div>
+                )}
+                
                 <button
                   onClick={() => handleSubmit(phoneContactMethod)}
-                  disabled={phoneValue.replace(/\s/g, '').length < 12 || isSubmitting !== null}
+                  disabled={phoneValue.replace(/\s/g, '').length < 12 || !phoneFirstName || !phoneLastName || isSubmitting !== null}
                   className="w-full py-3 px-4 rounded-lg bg-[#CDFE00] text-gray-900 font-medium hover:bg-[#bce900] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting === phoneContactMethod

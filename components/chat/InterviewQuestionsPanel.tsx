@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Check, ChevronDown, GripVertical, MessagesSquare, Pencil, Plus, UserX } from 'lucide-react';
+import { Check, ChevronDown, GripVertical, MessagesSquare, Pencil, Plus, Trash2, UserX } from 'lucide-react';
 import { BoltIcon } from '@heroicons/react/24/solid';
 import { GeneratedQuestion } from './QuestionListMessage';
 import {
@@ -29,11 +29,12 @@ interface InterviewQuestionsPanelProps {
   highlightedIds?: string[];
   onQuestionClick?: (question: GeneratedQuestion, index: number) => void;
   onReorder?: (questions: GeneratedQuestion[]) => void;
-  onAddQuestion?: (text: string, type: 'knockout' | 'qualifying') => void;
+  onAddQuestion?: (text: string, type: 'knockout' | 'qualifying', idealAnswer?: string) => void;
+  onDeleteQuestion?: (questionId: string) => void;
   readOnly?: boolean;
 }
 
-export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
+export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
   const knockoutQuestions = questions.filter(q => q.type === 'knockout');
   const qualifyingQuestions = questions.filter(q => q.type === 'qualifying');
   const hasQuestions = questions.length > 0;
@@ -188,6 +189,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   isHighlighted={highlightedIds.includes(question.id)}
                   animationDelay={knockoutQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
+                  onDelete={readOnly ? undefined : onDeleteQuestion}
                   readOnly={readOnly}
                 />
               ))}
@@ -246,6 +248,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   isHighlighted={highlightedIds.includes(question.id)}
                   animationDelay={qualifyingQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
+                  onDelete={readOnly ? undefined : onDeleteQuestion}
                   readOnly={readOnly}
                 />
               ))}
@@ -264,7 +267,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
       {/* Outcome */}
       <TimelineItem animationDelay={outcomeDelay}>
         <div className="bg-brand-dark-blue rounded-lg p-3 flex items-center gap-2">
-          <div className="w-5 h-5 bg-white rounded flex items-center justify-center flex-shrink-0">
+          <div className="w-5 h-5 bg-white rounded flex items-center justify-center shrink-0">
             <Image src="/outlook.png" alt="Outlook" width={14} height={14} className="object-contain" />
           </div>
           <p className="text-sm text-white">Plan interview met recruiter</p>
@@ -455,67 +458,143 @@ function AddQuestionInput({
   placeholder = 'Voeg een vraag toe...'
 }: { 
   type: 'knockout' | 'qualifying';
-  onAdd?: (text: string, type: 'knockout' | 'qualifying') => void;
+  onAdd?: (text: string, type: 'knockout' | 'qualifying', idealAnswer?: string) => void;
   placeholder?: string;
 }) {
-  const [value, setValue] = useState('');
+  const [questionText, setQuestionText] = useState('');
+  const [idealAnswer, setIdealAnswer] = useState('');
+  const [step, setStep] = useState<'question' | 'ideal_answer'>('question');
   const [isFocused, setIsFocused] = useState(false);
+  const idealAnswerInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = () => {
-    if (value.trim() && onAdd) {
-      onAdd(value.trim(), type);
-      setValue('');
+  const handleQuestionSubmit = () => {
+    if (!questionText.trim()) return;
+    
+    if (type === 'knockout') {
+      // For knockout questions, submit immediately
+      onAdd?.(questionText.trim(), type);
+      setQuestionText('');
+    } else {
+      // For qualifying questions, move to step 2
+      setStep('ideal_answer');
+      // Focus the ideal answer input after a short delay
+      setTimeout(() => idealAnswerInputRef.current?.focus(), 50);
     }
+  };
+
+  const handleIdealAnswerSubmit = () => {
+    // Submit with whatever ideal answer is provided (can be empty)
+    onAdd?.(questionText.trim(), type, idealAnswer.trim() || undefined);
+    // Reset state
+    setQuestionText('');
+    setIdealAnswer('');
+    setStep('question');
+  };
+
+  const handleCancel = () => {
+    setQuestionText('');
+    setIdealAnswer('');
+    setStep('question');
+    setIsFocused(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      if (step === 'question') {
+        handleQuestionSubmit();
+      } else {
+        handleIdealAnswerSubmit();
+      }
+    }
+    if (e.key === 'Escape') {
+      handleCancel();
     }
   };
 
-  const canSubmit = value.trim().length > 0;
+  const canSubmitQuestion = questionText.trim().length > 0;
 
-  return (
-    <div 
-      className={`rounded-lg p-2 flex items-center gap-2 border-2 border-dashed transition-all duration-200 ${
-        isFocused 
-          ? 'border-blue-300 bg-blue-50' 
-          : 'border-gray-200 bg-white hover:border-gray-300'
-      }`}
-    >
-      <div className="shrink-0 p-0.5 -ml-1">
-        <Plus className={`w-4 h-4 ${isFocused ? 'text-blue-400' : 'text-gray-300'}`} />
+  // Step 1: Question input
+  if (step === 'question') {
+    return (
+      <div 
+        className={`rounded-lg p-2 flex items-center gap-2 border-2 border-dashed transition-all duration-200 ${
+          isFocused 
+            ? 'border-blue-300 bg-blue-50' 
+            : 'border-gray-200 bg-white hover:border-gray-300'
+        }`}
+      >
+        <div className="shrink-0 p-0.5 -ml-1">
+          <Plus className={`w-4 h-4 ${isFocused ? 'text-blue-400' : 'text-gray-300'}`} />
+        </div>
+        <input
+          type="text"
+          value={questionText}
+          onChange={(e) => setQuestionText(e.target.value)}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => {
+            // Delay blur to allow button click
+            setTimeout(() => setIsFocused(false), 150);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 bg-transparent outline-none"
+        />
+        {isFocused && (
+          <button
+            type="button"
+            onClick={handleQuestionSubmit}
+            disabled={!canSubmitQuestion}
+            className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-200 ${
+              canSubmitQuestion 
+                ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+            }`}
+          >
+            <Check className="w-3 h-3" />
+            <span>{type === 'qualifying' ? 'next' : 'add'}</span>
+          </button>
+        )}
       </div>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => {
-          // Delay blur to allow button click
-          setTimeout(() => setIsFocused(false), 150);
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 bg-transparent outline-none"
-      />
-      {isFocused && (
+    );
+  }
+
+  // Step 2: Ideal answer input (only for qualifying questions)
+  return (
+    <div className="rounded-lg border-2 border-blue-300 bg-blue-50 overflow-hidden transition-all duration-200">
+      {/* Show the question being added */}
+      <div className="px-3 py-2 border-b border-blue-200 bg-blue-100/50">
+        <p className="text-xs text-blue-600 font-medium mb-0.5">Nieuwe vraag:</p>
+        <p className="text-sm text-gray-700">{questionText}</p>
+      </div>
+      {/* Ideal answer input */}
+      <div className="p-2 flex items-center gap-2">
+        <input
+          ref={idealAnswerInputRef}
+          type="text"
+          value={idealAnswer}
+          onChange={(e) => setIdealAnswer(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Beschrijf het ideale antwoord... (optioneel)"
+          className="flex-1 text-sm text-gray-700 placeholder:text-gray-400 bg-transparent outline-none"
+          autoFocus
+        />
         <button
           type="button"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className={`shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-all duration-200 ${
-            canSubmit 
-              ? 'bg-blue-500 text-white hover:bg-blue-600 cursor-pointer' 
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-          }`}
+          onClick={handleCancel}
+          className="shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-200 transition-colors"
+        >
+          cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleIdealAnswerSubmit}
+          className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500 text-white hover:bg-blue-600 cursor-pointer transition-colors"
         >
           <Check className="w-3 h-3" />
           <span>add</span>
         </button>
-      )}
+      </div>
     </div>
   );
 }
@@ -527,6 +606,7 @@ function SortableQuestionItem({
   isHighlighted = false,
   animationDelay = 0,
   onClick,
+  onDelete,
   readOnly = false,
 }: { 
   question: GeneratedQuestion; 
@@ -535,6 +615,7 @@ function SortableQuestionItem({
   isHighlighted?: boolean;
   animationDelay?: number;
   onClick?: (question: GeneratedQuestion, index: number) => void;
+  onDelete?: (questionId: string) => void;
   readOnly?: boolean;
 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -660,6 +741,19 @@ function SortableQuestionItem({
               >
                 <Pencil className="w-4 h-4" />
               </button>
+              {/* Delete icon - remove this question */}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(question.id);
+                  }}
+                  className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Vraag verwijderen"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           )}
           {/* Chevron for qualifying questions - always visible */}

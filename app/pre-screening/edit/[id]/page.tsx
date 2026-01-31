@@ -28,10 +28,13 @@ import { Loader2, ArrowLeft, CheckCircle, XCircle, Pencil, Smartphone, RotateCcw
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { 
   generateInterview, 
-  reorderQuestions, 
+  reorderQuestions,
+  addQuestion,
+  deleteQuestion,
   SSEEvent, 
   Interview,
   PreScreening,
+  PreScreeningInput,
   getVacancy,
   getPreScreening,
   getApplications,
@@ -131,6 +134,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   // Detect if there are unsaved changes by comparing current questions with saved pre-screening
   const hasUnsavedChanges = useMemo(() => {
@@ -363,6 +368,110 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     }
   }, []);
 
+  // Build pre-screening config from provided questions
+  const buildPreScreeningConfigFromQuestions = useCallback((questionsToSave: GeneratedQuestion[]): PreScreeningInput => {
+    const knockoutQuestions = questionsToSave
+      .filter(q => q.type === 'knockout')
+      .map(q => ({ id: q.id, question: q.text }));
+    
+    const qualificationQuestions = questionsToSave
+      .filter(q => q.type === 'qualifying')
+      .map(q => ({ 
+        id: q.id, 
+        question: q.text,
+        ideal_answer: q.idealAnswer,
+      }));
+    
+    // Get intro and actions from existing config or use defaults
+    const intro = existingPreScreening?.intro || 
+      "Hallo! Leuk dat je solliciteert. Ben je klaar voor een paar korte vragen?";
+    const knockoutFailedAction = existingPreScreening?.knockout_failed_action || 
+      "Helaas voldoe je niet aan de basisvereisten. Interesse in andere matches?";
+    const finalAction = existingPreScreening?.final_action || 
+      "Perfect! We plannen een gesprek met de recruiter.";
+
+    return {
+      intro,
+      knockout_questions: knockoutQuestions,
+      knockout_failed_action: knockoutFailedAction,
+      qualification_questions: qualificationQuestions,
+      final_action: finalAction,
+      approved_ids: questionsToSave.map(q => q.id),
+    };
+  }, [existingPreScreening]);
+
+  // Build pre-screening config from current questions state
+  const buildPreScreeningConfig = useCallback(() => {
+    return buildPreScreeningConfigFromQuestions(questions);
+  }, [questions, buildPreScreeningConfigFromQuestions]);
+
+  // Auto-save questions to database (debounced)
+  const autoSaveQuestions = useCallback((questionsToSave: GeneratedQuestion[]) => {
+    if (!vacancy) return;
+    
+    // Clear any pending auto-save
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    // Debounce by 500ms to avoid too many API calls during rapid changes
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      if (questionsToSave.length === 0) return;
+      
+      setIsAutoSaving(true);
+      
+      try {
+        const config = buildPreScreeningConfigFromQuestions(questionsToSave);
+        await savePreScreening(vacancy.id, config);
+        
+        // Update existingPreScreening state so hasUnsavedChanges becomes false
+        setExistingPreScreening(prev => {
+          const base = prev ?? {
+            id: vacancy.id,
+            vacancy_id: vacancy.id,
+            intro: config.intro,
+            knockout_questions: [],
+            knockout_failed_action: config.knockout_failed_action,
+            qualification_questions: [],
+            final_action: config.final_action,
+            status: 'draft' as const,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            is_online: false,
+          };
+          
+          return {
+            ...base,
+            knockout_questions: config.knockout_questions.map((q, idx) => ({
+              id: q.id,
+              question_text: q.question,
+              question_type: 'knockout' as const,
+              position: idx,
+              is_approved: true,
+            })),
+            qualification_questions: config.qualification_questions.map((q, idx) => ({
+              id: q.id,
+              question_text: q.question,
+              ideal_answer: q.ideal_answer,
+              question_type: 'qualification' as const,
+              position: idx,
+              is_approved: true,
+            })),
+            updated_at: new Date().toISOString(),
+          };
+        });
+        
+        console.log('Auto-saved questions to database');
+        toast.success('Wijzigingen opgeslagen');
+      } catch (error) {
+        console.error('Auto-save failed:', error);
+        toast.error('Opslaan mislukt. Probeer het opnieuw.');
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 500);
+  }, [vacancy, buildPreScreeningConfigFromQuestions]);
+
   // Generate interview questions via backend API with retry logic
   const doGenerateInterview = useCallback(async (existingSessionId?: string) => {
     if (!vacancy) return;
@@ -396,6 +505,9 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         setIsGenerating(false);
         setCurrentStatus('');
         setThinkingContent(''); // Clear thinking content on success
+        
+        // Auto-save newly generated questions to database
+        autoSaveQuestions(questionsWithoutChangeStatus);
         return;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
@@ -416,7 +528,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     setIsGenerating(false);
     setCurrentStatus('');
     setThinkingContent(''); // Clear thinking content on error
-  }, [vacancy, handleSSEEvent, convertToFrontendQuestions]);
+  }, [vacancy, handleSSEEvent, convertToFrontendQuestions, autoSaveQuestions]);
 
   // Auto-generate questions when vacancy loads (only if no existing pre-screening)
   useEffect(() => {
@@ -463,6 +575,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     updateQuestionsWithHighlight(newQuestions);
     // Reset the WhatsApp chat simulation since questions have changed
     setChatResetKey(prev => prev + 1);
+    // Auto-save updated questions to database
+    autoSaveQuestions(newQuestions);
   };
 
   useEffect(() => {
@@ -470,11 +584,96 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       if (highlightTimeoutRef.current) {
         clearTimeout(highlightTimeoutRef.current);
       }
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
     };
   }, []);
 
   const handleRegenerate = async () => {
     await doGenerateInterview();
+  };
+
+  // Update existingPreScreening state after save/publish
+  const updateExistingPreScreeningState = useCallback((
+    publishResult: { published_at: string; is_online: boolean; elevenlabs_agent_id?: string; whatsapp_agent_id?: string },
+    config: ReturnType<typeof buildPreScreeningConfig>
+  ) => {
+    setExistingPreScreening(prev => {
+      const base: PreScreening = prev ?? {
+        id: vacancy?.id ?? '',
+        vacancy_id: vacancy?.id ?? '',
+        intro: config.intro,
+        knockout_questions: [],
+        knockout_failed_action: config.knockout_failed_action,
+        qualification_questions: [],
+        final_action: config.final_action,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_online: false,
+      };
+      return {
+        ...base,
+        // Update questions to match current state so hasUnsavedChanges returns false
+        knockout_questions: config.knockout_questions.map((q, idx) => ({
+          id: q.id,
+          question_text: q.question,
+          question_type: 'knockout' as const,
+          position: idx,
+          is_approved: true,
+        })),
+        qualification_questions: config.qualification_questions.map((q, idx) => ({
+          id: q.id,
+          question_text: q.question,
+          ideal_answer: q.ideal_answer,
+          question_type: 'qualification' as const,
+          position: idx,
+          is_approved: true,
+        })),
+        published_at: publishResult.published_at,
+        is_online: publishResult.is_online,
+        elevenlabs_agent_id: publishResult.elevenlabs_agent_id ?? prev?.elevenlabs_agent_id ?? null,
+        whatsapp_agent_id: publishResult.whatsapp_agent_id ?? prev?.whatsapp_agent_id ?? null,
+      };
+    });
+  }, [vacancy?.id]);
+
+  // Save and update agents when already online (no dialog needed)
+  const handleSaveAndUpdate = async () => {
+    if (!vacancy) return;
+    
+    setIsSaving(true);
+    
+    try {
+      const config = buildPreScreeningConfig();
+      
+      console.log('Saving pre-screening to database...');
+      await savePreScreening(vacancy.id, config);
+      
+      console.log('Pre-screening saved, now updating agents...');
+      
+      // Republish with the same channels that are already active
+      const publishResult = await publishPreScreening(vacancy.id, {
+        enable_voice: !!existingPreScreening?.elevenlabs_agent_id,
+        enable_whatsapp: !!existingPreScreening?.whatsapp_agent_id,
+      });
+      
+      console.log('Agents updated successfully!', publishResult);
+      
+      // Update local state
+      setPublishedAt(publishResult.published_at);
+      setIsOnline(publishResult.is_online);
+      updateExistingPreScreeningState(publishResult, config);
+      
+      toast.success(`Wijzigingen opgeslagen en agents bijgewerkt`);
+      
+    } catch (error) {
+      console.error('Failed to save and update:', error);
+      toast.error(error instanceof Error ? error.message : 'Opslaan mislukt. Probeer het opnieuw.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePublish = async (channels: PublishChannels) => {
@@ -485,38 +684,10 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     setIsSaving(true);
     
     try {
-      // Build the pre-screening config from current questions
-      const knockoutQuestions = questions
-        .filter(q => q.type === 'knockout')
-        .map(q => ({ id: q.id, question: q.text }));
-      
-      const qualificationQuestions = questions
-        .filter(q => q.type === 'qualifying')
-        .map(q => ({ 
-          id: q.id, 
-          question: q.text,
-          ideal_answer: q.idealAnswer,
-        }));
-      
-      // Get intro and actions from existing config or use defaults
-      const intro = existingPreScreening?.intro || 
-        "Hallo! Leuk dat je solliciteert. Ben je klaar voor een paar korte vragen?";
-      const knockoutFailedAction = existingPreScreening?.knockout_failed_action || 
-        "Helaas voldoe je niet aan de basisvereisten. Interesse in andere matches?";
-      const finalAction = existingPreScreening?.final_action || 
-        "Perfect! We plannen een gesprek met de recruiter.";
+      const config = buildPreScreeningConfig();
       
       console.log('Saving pre-screening to database...');
-      
-      // First save the pre-screening
-      await savePreScreening(vacancy.id, {
-        intro,
-        knockout_questions: knockoutQuestions,
-        knockout_failed_action: knockoutFailedAction,
-        qualification_questions: qualificationQuestions,
-        final_action: finalAction,
-        approved_ids: questions.map(q => q.id),
-      });
+      await savePreScreening(vacancy.id, config);
       
       console.log('Pre-screening saved, now publishing...');
       
@@ -531,47 +702,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       // Update local state with publish result
       setPublishedAt(publishResult.published_at);
       setIsOnline(publishResult.is_online);
-      
-      // Update existingPreScreening with new publishing fields AND the saved questions
-      // This ensures hasUnsavedChanges will be false after publishing
-      setExistingPreScreening(prev => {
-        const base: PreScreening = prev ?? {
-          id: vacancy.id,
-          vacancy_id: vacancy.id,
-          intro,
-          knockout_questions: [],
-          knockout_failed_action: knockoutFailedAction,
-          qualification_questions: [],
-          final_action: finalAction,
-          status: 'active',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_online: false,
-        };
-        return {
-          ...base,
-          // Update questions to match current state so hasUnsavedChanges returns false
-          knockout_questions: knockoutQuestions.map((q, idx) => ({
-            id: q.id,
-            question_text: q.question,
-            question_type: 'knockout' as const,
-            position: idx,
-            is_approved: true,
-          })),
-          qualification_questions: qualificationQuestions.map((q, idx) => ({
-            id: q.id,
-            question_text: q.question,
-            ideal_answer: q.ideal_answer,
-            question_type: 'qualification' as const,
-            position: idx,
-            is_approved: true,
-          })),
-          published_at: publishResult.published_at,
-          is_online: publishResult.is_online,
-          elevenlabs_agent_id: publishResult.elevenlabs_agent_id ?? null,
-          whatsapp_agent_id: publishResult.whatsapp_agent_id ?? null,
-        };
-      });
+      updateExistingPreScreeningState(publishResult, config);
       
       // Show success toast
       toast.success(`Pre-screening voor "${vacancy.title}" nu live`);
@@ -599,8 +730,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
       return;
     }
     
-    // Going online - show publish dialog (same as republish)
-    setShowPublishDialog(true);
+    // Going online - just toggle the status (channels already configured)
+    await performStatusUpdate(true);
   };
 
   const performStatusUpdate = async (newOnlineStatus: boolean) => {
@@ -639,6 +770,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     if (!sessionId) {
       setQuestions(reorderedQuestions);
       prevQuestionsRef.current = reorderedQuestions;
+      // Still auto-save even without session (edge case)
+      autoSaveQuestions(reorderedQuestions);
       return;
     }
 
@@ -660,6 +793,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         await reorderQuestions(sessionId, knockoutOrder, qualificationOrder);
+        // Auto-save reordered questions to database
+        autoSaveQuestions(reorderedQuestions);
         return;
       } catch (error) {
         console.warn(`Reorder questions attempt ${attempt + 1} failed:`, error);
@@ -674,6 +809,118 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     console.error('Failed to reorder questions after all retries');
     setQuestions(previousQuestions);
     prevQuestionsRef.current = previousRef;
+  };
+
+  const handleAddQuestion = async (
+    text: string, 
+    type: 'knockout' | 'qualifying', 
+    idealAnswer?: string
+  ) => {
+    if (!sessionId) {
+      toast.error('Sessie niet beschikbaar. Probeer de pagina te vernieuwen.');
+      return;
+    }
+
+    // Generate temporary ID for optimistic update
+    const tempId = `temp_${Date.now()}`;
+    const tempQuestion: GeneratedQuestion = {
+      id: tempId,
+      text,
+      type,
+      idealAnswer: type === 'qualifying' ? idealAnswer : undefined,
+      changeStatus: 'new',
+    };
+
+    // Store previous state for rollback
+    const previousQuestions = [...questions];
+    const previousRef = [...prevQuestionsRef.current];
+
+    // Optimistic UI update - add to end of list
+    const newQuestions = [...questions, tempQuestion];
+    setQuestions(newQuestions);
+    prevQuestionsRef.current = newQuestions;
+    setHighlightedIds(prev => [...prev, tempId]);
+
+    // Map frontend type to backend type
+    const backendType = type === 'qualifying' ? 'qualification' : 'knockout';
+
+    try {
+      const result = await addQuestion(sessionId, backendType, text, idealAnswer);
+      
+      // Replace temp ID with real ID from backend
+      const updatedQuestions = newQuestions.map(q => 
+        q.id === tempId 
+          ? { 
+              ...q, 
+              id: result.question.id, 
+              changeStatus: result.question.change_status,
+            } 
+          : q
+      );
+      setQuestions(updatedQuestions);
+      prevQuestionsRef.current = updatedQuestions;
+      
+      // Update highlighted IDs with real ID
+      setHighlightedIds(prev => prev.map(id => id === tempId ? result.question.id : id));
+      
+      // Reset the WhatsApp chat simulation since questions have changed
+      setChatResetKey(prev => prev + 1);
+      
+      // Auto-save updated questions to database
+      autoSaveQuestions(updatedQuestions);
+      
+    } catch (error) {
+      console.error('Failed to add question:', error);
+      // Rollback on error
+      setQuestions(previousQuestions);
+      prevQuestionsRef.current = previousRef;
+      setHighlightedIds(prev => prev.filter(id => id !== tempId));
+      toast.error(error instanceof Error ? error.message : 'Vraag toevoegen mislukt. Probeer het opnieuw.');
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    if (!sessionId) {
+      toast.error('Sessie niet beschikbaar. Probeer de pagina te vernieuwen.');
+      return;
+    }
+
+    // Store previous state for rollback
+    const previousQuestions = [...questions];
+    const previousRef = [...prevQuestionsRef.current];
+
+    // Optimistic UI update - remove question immediately
+    const filteredQuestions = questions.filter(q => q.id !== questionId);
+    setQuestions(filteredQuestions);
+    prevQuestionsRef.current = filteredQuestions;
+
+    const maxRetries = 3;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await deleteQuestion(sessionId, questionId);
+        
+        // Reset the WhatsApp chat simulation since questions have changed
+        setChatResetKey(prev => prev + 1);
+        
+        // Auto-save updated questions to database
+        autoSaveQuestions(filteredQuestions);
+        return;
+      } catch (error) {
+        console.warn(`Delete question attempt ${attempt + 1} failed:`, error);
+        
+        if (attempt < maxRetries - 1) {
+          const backoffMs = Math.pow(2, attempt) * 1000;
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        }
+      }
+    }
+
+    console.error('Failed to delete question after all retries');
+    // Rollback on error
+    setQuestions(previousQuestions);
+    prevQuestionsRef.current = previousRef;
+    toast.error('Vraag verwijderen mislukt. Probeer het opnieuw.');
   };
 
   if (isLoadingVacancy) {
@@ -781,8 +1028,8 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             </button>
           </div>
           
-          {/* Agent Online Toggle - only show after publishing */}
-          {publishedAt && (
+          {/* Agent Online Toggle or Publish Button */}
+          {publishedAt ? (
             <div className="flex items-center gap-2">
               <label htmlFor="agent-online-toggle" className="text-sm text-gray-500">
                 Agent online
@@ -795,6 +1042,20 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 className="data-[state=checked]:bg-green-500"
               />
             </div>
+          ) : (
+            <button
+              type="button"
+              disabled={questions.length === 0 || isGenerating || isSaving}
+              onClick={() => setShowPublishDialog(true)}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                questions.length === 0 || isGenerating || isSaving
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+              {isSaving ? 'Bezig...' : 'Publiceren'}
+            </button>
           )}
         </div>
       </div>
@@ -820,37 +1081,9 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   highlightedIds={highlightedIds}
                   onQuestionClick={handleQuestionClick}
                   onReorder={handleReorder}
+                  onAddQuestion={handleAddQuestion}
+                  onDeleteQuestion={handleDeleteQuestion}
                 />
-              </div>
-            </div>
-            
-            {/* Publish Banner - slide up when there are unsaved changes */}
-            <div 
-              className={`shrink-0 border-t border-gray-200 bg-gray-50 px-6 overflow-hidden transition-all duration-300 ease-out ${
-                isGenerated && hasUnsavedChanges && !isGenerating
-                  ? 'py-3 opacity-100 translate-y-0'
-                  : 'py-0 h-0 opacity-0 translate-y-4 border-t-0'
-              }`}
-            >
-              <div className="max-w-[720px] mx-auto flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  {publishedAt 
-                    ? 'Wijzigingen opslaan en de agents bijwerken?'
-                    : 'Klaar om te publiceren? Klik op publiceren om de wijzigingen op te slaan.'}
-                </p>
-                <button
-                  type="button"
-                  disabled={isSaving}
-                  onClick={() => setShowPublishDialog(true)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isSaving
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
-                  }`}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  {isSaving ? 'Bezig...' : publishedAt ? 'Bijwerken' : 'Publiceren'}
-                </button>
               </div>
             </div>
           </div>
@@ -897,34 +1130,6 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                 />
               </div>
             </div>
-            
-            {/* Publish Banner - slide up when there are unsaved changes */}
-            <div 
-              className={`shrink-0 border-t border-gray-200 bg-gray-50 px-6 overflow-hidden transition-all duration-300 ease-out ${
-                isGenerated && hasUnsavedChanges && !isGenerating
-                  ? 'py-3 opacity-100 translate-y-0'
-                  : 'py-0 h-0 opacity-0 translate-y-4 border-t-0'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  {publishedAt ? 'Wijzigingen opslaan?' : 'Klaar om te publiceren?'}
-                </p>
-                <button
-                  type="button"
-                  disabled={isSaving}
-                  onClick={() => setShowPublishDialog(true)}
-                  className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isSaving
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-green-500 hover:bg-green-600 text-white shadow-sm'
-                  }`}
-                >
-                  <CheckCircle className="w-4 h-4" />
-                  {isSaving ? 'Bezig...' : publishedAt ? 'Bijwerken' : 'Publiceren'}
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Phone mockup - fills remaining space */}
@@ -936,6 +1141,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   resetKey={chatResetKey} 
                   vacancyId={vacancy.id}
                   candidateName="Laurijn"
+                  isActive={viewMode === 'preview'}
                 />
               </IPhoneMockup>
               
@@ -1013,11 +1219,13 @@ export default function EditPreScreeningPage({ params }: PageProps) {
               <>
                 <InterviewDashboard applications={applications} />
                 <div className="mt-6">
-                  <h2 className="text-sm font-semibold text-gray-700 mb-3">Sollicitaties</h2>
+                  <h2 className="text-sm font-semibold text-gray-700 mb-3">Kandidaten</h2>
                   <ApplicationsTable 
                     applications={applications}
                     selectedId={selectedApplicationId}
                     onSelectApplication={(appId) => setSelectedApplicationId(appId)}
+                    isPublished={!!publishedAt}
+                    onPublishClick={() => setShowPublishDialog(true)}
                   />
                 </div>
                 {publishedAt && (

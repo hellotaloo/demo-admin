@@ -28,6 +28,7 @@ interface WhatsAppChatProps {
   resetKey?: number;
   vacancyId?: string;
   candidateName?: string;
+  isActive?: boolean; // Only start conversation when active (visible)
 }
 
 // Pass scenario - candidate qualifies
@@ -130,6 +131,7 @@ export function WhatsAppChat({
   resetKey = 0,
   vacancyId,
   candidateName = 'Test Kandidaat',
+  isActive = true,
 }: WhatsAppChatProps) {
   // State for scripted scenarios (pass/fail)
   const [scriptedMessages, setScriptedMessages] = useState<Message[]>([]);
@@ -157,8 +159,13 @@ export function WhatsAppChat({
   const lastResetKeyRef = useRef<number | null>(null);
   const startTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Reset when scenario or resetKey changes
+  // Reset when scenario, resetKey, or isActive changes
   useEffect(() => {
+    // Don't do anything if not active (tab not visible)
+    if (!isActive) {
+      return;
+    }
+    
     // Reset scripted messages
     setScriptedMessages([]);
     setCurrentIndex(0);
@@ -174,6 +181,9 @@ export function WhatsAppChat({
     // Reset API chat if in API mode
     if (isApiMode) {
       screeningChat.resetChat();
+      
+      // Reset the ref so we can start fresh (needed when switching tabs)
+      lastResetKeyRef.current = null;
       
       // Use a small delay and ref to prevent duplicate starts when clicking rapidly
       const currentResetKey = resetKey;
@@ -217,7 +227,7 @@ export function WhatsAppChat({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scenario, resetKey, vacancyId]);
+  }, [scenario, resetKey, vacancyId, isActive]);
 
   // Scroll to bottom with smooth animation
   const scrollToBottom = useCallback(() => {

@@ -18,10 +18,21 @@ import {
   X,
   UserX,
   Pencil,
-  Trash2
+  Trash2,
+  GitBranch,
+  CornerDownRight,
+  ArrowRight,
+  CircleDot,
+  Circle,
+  Settings,
+  Play,
+  XCircle,
+  Car,
+  CalendarDays,
+  AlertCircle
 } from 'lucide-react';
 
-// Dummy question data
+// Dummy question data (linear questions for legacy variants)
 const dummyQuestions = {
   knockout: [
     { id: 'k1', text: 'Ben je 18 jaar of ouder?', icon: CheckCircle },
@@ -34,6 +45,69 @@ const dummyQuestions = {
     { id: 'q3', text: 'Hoe ga je om met drukte tijdens piekuren?', idealAnswer: 'Prioriteiten stellen, kalm blijven, team ondersteunen' },
   ],
 };
+
+// Complex branching question data (based on user's example)
+interface BranchQuestion {
+  id: string;
+  text: string;
+  type: 'knockout' | 'qualifying';
+  onYes?: BranchAction;
+  onNo?: BranchAction;
+  responseText?: string; // Optional text to say before next action
+}
+
+interface BranchAction {
+  type: 'next' | 'fail' | 'followup';
+  questionId?: string; // For followup type
+  responseText?: string; // Text to say
+}
+
+// The complex branching example from the user
+const complexBranchingQuestion: BranchQuestion = {
+  id: 'k2',
+  text: 'Kan je werken in een 2-ploegensysteem (vroege en late shift)?',
+  type: 'knockout',
+  onNo: { type: 'fail' },
+  onYes: { type: 'followup', questionId: 'k2-1' },
+};
+
+const followUpQuestions: BranchQuestion[] = [
+  {
+    id: 'k2-1',
+    text: 'En ben je ook beschikbaar om in het weekend te werken indien nodig?',
+    type: 'knockout',
+    onYes: { type: 'followup', questionId: 'k2-2' },
+    onNo: { type: 'followup', questionId: 'k2-1b' },
+  },
+  {
+    id: 'k2-1b',
+    text: 'Ik begrijp het. Zou het eventueel wel mogelijk zijn tijdens het hoogseizoen, bijvoorbeeld in de zomermaanden?',
+    type: 'knockout',
+    onYes: { 
+      type: 'followup', 
+      questionId: 'k2-2',
+      responseText: 'Dat is al iets, we kunnen daar rekening mee houden.'
+    },
+    onNo: { type: 'fail' },
+  },
+  {
+    id: 'k2-2',
+    text: 'Heb je eigen vervoer om op wisselende uren op het werk te geraken?',
+    type: 'knockout',
+    onYes: { type: 'next' },
+    onNo: { type: 'followup', questionId: 'k2-2b' },
+  },
+  {
+    id: 'k2-2b',
+    text: 'Kan je rekenen op openbaar vervoer of carpoolen met collega\'s?',
+    type: 'knockout',
+    onYes: { 
+      type: 'next',
+      responseText: 'Prima!'
+    },
+    onNo: { type: 'fail' },
+  },
+];
 
 // ============================================
 // DESIGN VARIANT A: Classic Two-Column Cards
@@ -913,19 +987,883 @@ function DesignVariantG() {
 }
 
 // ============================================
+// DESIGN VARIANT H: Nested Accordion (Sub-questions inline)
+// ============================================
+function DesignVariantH() {
+  const [expandedQuestions, setExpandedQuestions] = useState<string[]>(['k2']);
+
+  const toggleQuestion = (id: string) => {
+    setExpandedQuestions(prev => 
+      prev.includes(id) ? prev.filter(q => q !== id) : [...prev, id]
+    );
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-lg font-semibold text-gray-900">Variant H: Nested Accordion</h2>
+        <p className="text-sm text-gray-500 mt-1">Sub-questions expand inline under parent question</p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Knockout vragen</h3>
+              <p className="text-sm text-gray-500 mt-0.5">3 vragen met conditionele logica</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Questions */}
+        <div className="divide-y divide-gray-100">
+          {/* Simple knockout question */}
+          <div className="px-6 py-4">
+            <div className="flex items-center gap-3">
+              <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">1</span>
+              <p className="flex-1 text-sm text-gray-700">Ben je in het bezit van een geldige Belgische werkvergunning?</p>
+              <ChevronRight className="w-4 h-4 text-gray-300" />
+            </div>
+          </div>
+
+          {/* Complex knockout question with branches */}
+          <div className="px-6 py-4">
+            <button
+              onClick={() => toggleQuestion('k2')}
+              className="w-full flex items-center gap-3 text-left"
+            >
+              <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">2</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-700">{complexBranchingQuestion.text}</p>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium">
+                    <GitBranch className="w-3 h-3" />
+                    4 opvolgvragen
+                  </span>
+                </div>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedQuestions.includes('k2') ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Expanded sub-questions */}
+            {expandedQuestions.includes('k2') && (
+              <div className="mt-4 ml-9 space-y-3">
+                {/* Branch indicator for main question */}
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className="flex flex-col items-center gap-1 pt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckCircle className="w-3 h-3 text-green-600" />
+                    </div>
+                    <div className="w-px h-4 bg-gray-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-green-600 mb-1">Als JA</p>
+                    <div className="p-2.5 rounded-lg bg-white border border-gray-200">
+                      <p className="text-sm text-gray-700">Ben je beschikbaar om in het weekend te werken indien nodig?</p>
+                      
+                      {/* Nested branches */}
+                      <div className="mt-3 ml-2 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <CheckCircle className="w-2.5 h-2.5 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-green-600 font-medium">JA</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Vraag over eigen vervoer</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <div className="w-4 h-4 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <XCircle className="w-2.5 h-2.5 text-amber-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs text-amber-600 font-medium">NEE</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Vraag over hoogseizoen (zomermaanden)</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className="flex flex-col items-center gap-1 pt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center">
+                      <XCircle className="w-3 h-3 text-red-600" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-red-600 mb-1">Als NEE</p>
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-red-50 border border-red-200">
+                      <UserX className="w-4 h-4 text-red-500" />
+                      <span className="text-sm text-red-700">Niet geslaagd</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add branch button */}
+                <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                  <Plus className="w-4 h-4" />
+                  Opvolgvraag toevoegen
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Third simple question */}
+          <div className="px-6 py-4">
+            <div className="flex items-center gap-3">
+              <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">3</span>
+              <p className="flex-1 text-sm text-gray-700">Woon je in de regio Diest of kan je daar vlot geraken?</p>
+              <ChevronRight className="w-4 h-4 text-gray-300" />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gray-50 rounded-b-2xl border-t border-gray-100">
+          <div className="flex items-center justify-between">
+            <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+              <Plus className="w-4 h-4" />
+              Vraag toevoegen
+            </button>
+            <button className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors">
+              Opslaan
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// DESIGN VARIANT I: Visual Branch Tree
+// ============================================
+function DesignVariantI() {
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-lg font-semibold text-gray-900">Variant I: Visual Branch Tree</h2>
+        <p className="text-sm text-gray-500 mt-1">Tree structure showing all paths visually</p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        {/* Root question */}
+        <div className="relative">
+          {/* Main question card */}
+          <div className="relative z-10 max-w-md mx-auto">
+            <div className="bg-[#1e3a5f] rounded-xl p-4 text-white">
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">2</span>
+                <div className="flex-1">
+                  <p className="text-xs text-white/60 mb-1">Knockout vraag</p>
+                  <p className="text-sm leading-relaxed">{complexBranchingQuestion.text}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Branch lines */}
+          <div className="flex justify-center mt-4">
+            <div className="flex items-start gap-16">
+              {/* NO branch */}
+              <div className="flex flex-col items-center">
+                <div className="w-px h-8 bg-gray-300" />
+                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
+                  <XCircle className="w-3 h-3" />
+                  NEE
+                </div>
+                <div className="w-px h-8 bg-gray-300" />
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border-2 border-dashed border-red-200">
+                  <UserX className="w-5 h-5 text-red-400" />
+                  <span className="text-sm text-red-600 font-medium">Niet geslaagd</span>
+                </div>
+              </div>
+
+              {/* YES branch */}
+              <div className="flex flex-col items-center">
+                <div className="w-px h-8 bg-gray-300" />
+                <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                  <CheckCircle className="w-3 h-3" />
+                  JA
+                </div>
+                <div className="w-px h-8 bg-gray-300" />
+                
+                {/* Follow-up question 1 */}
+                <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm max-w-xs">
+                  <p className="text-xs text-gray-500 mb-1">Opvolgvraag 1</p>
+                  <p className="text-sm text-gray-700">Ben je beschikbaar om in het weekend te werken?</p>
+                </div>
+
+                {/* Further branching */}
+                <div className="flex items-start gap-12 mt-4">
+                  {/* NO to weekend */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-px h-6 bg-gray-300" />
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
+                      NEE
+                    </div>
+                    <div className="w-px h-6 bg-gray-300" />
+                    <div className="bg-amber-50 rounded-lg p-3 border border-amber-200 max-w-[180px]">
+                      <p className="text-xs text-amber-700">Hoogseizoen vraag</p>
+                    </div>
+                  </div>
+
+                  {/* YES to weekend */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-px h-6 bg-gray-300" />
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                      JA
+                    </div>
+                    <div className="w-px h-6 bg-gray-300" />
+                    <div className="bg-white rounded-lg p-3 border border-gray-200 max-w-[180px]">
+                      <p className="text-xs text-gray-500 mb-0.5">Opvolgvraag 2</p>
+                      <p className="text-xs text-gray-700">Eigen vervoer?</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="mt-12 pt-6 border-t border-gray-100">
+          <div className="flex items-center justify-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-green-100 border border-green-300" />
+              <span className="text-xs text-gray-500">Doorgaan</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-amber-100 border border-amber-300" />
+              <span className="text-xs text-gray-500">Alternatief pad</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-red-100 border border-red-300" />
+              <span className="text-xs text-gray-500">Niet geslaagd</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// DESIGN VARIANT J: Timeline with Inline Branches
+// ============================================
+function DesignVariantJ() {
+  const [expandedBranch, setExpandedBranch] = useState<string | null>('k2');
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-lg font-semibold text-gray-900">Variant J: Timeline + Inline Branches</h2>
+        <p className="text-sm text-gray-500 mt-1">Current timeline style with branch indicators</p>
+      </div>
+
+      {/* Main Flow Container */}
+      <div className="relative pl-6">
+        {/* Vertical Timeline Line */}
+        <div className="absolute left-[11px] top-6 bottom-6 w-0.5 bg-gray-200" />
+
+        {/* 1. TRIGGER */}
+        <div className="relative flex items-start gap-4 pb-6">
+          <div className="relative z-10 w-6 h-6 rounded-full bg-white border-2 border-gray-200 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-gray-400" />
+          </div>
+          <div className="flex-1 -mt-0.5">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#c4e456] text-gray-900">
+              <Zap className="w-4 h-4" />
+              <span className="text-sm font-semibold">Nieuwe sollicitatie</span>
+            </div>
+          </div>
+        </div>
+
+        {/* KNOCKOUT VRAGEN Section Header */}
+        <div className="relative flex items-start gap-4 pb-2">
+          <div className="relative z-10 w-6 h-6 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-gray-400" />
+          </div>
+          <div className="flex-1 -mt-0.5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Knock-out vragen</p>
+          </div>
+        </div>
+
+        {/* Knockout Questions List */}
+        <div className="relative pl-10 pb-4 space-y-2">
+          {/* Simple question 1 */}
+          <div className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer">
+            <p className="flex-1 text-sm text-gray-700">Ben je in het bezit van een geldige Belgische werkvergunning?</p>
+            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors" />
+          </div>
+
+          {/* Complex question with branches */}
+          <div className="rounded-xl bg-white border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setExpandedBranch(expandedBranch === 'k2' ? null : 'k2')}
+              className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-700">{complexBranchingQuestion.text}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium">
+                  <GitBranch className="w-3 h-3" />
+                  Logica
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedBranch === 'k2' ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {/* Expanded branch view */}
+            {expandedBranch === 'k2' && (
+              <div className="border-t border-gray-100 bg-gray-50 p-4">
+                <div className="space-y-3">
+                  {/* YES Path */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold shrink-0">
+                      <CheckCircle className="w-3 h-3" />
+                      JA
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <CornerDownRight className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-600">Opvolgvraag: "Ben je beschikbaar voor weekendwerk?"</span>
+                      </div>
+                      {/* Nested branches indicator */}
+                      <div className="mt-2 ml-6 flex items-center gap-4 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3 text-green-500" /> Vraag over vervoer
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <XCircle className="w-3 h-3 text-amber-500" /> Vraag over hoogseizoen
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NO Path */}
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold shrink-0">
+                      <XCircle className="w-3 h-3" />
+                      NEE
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <ArrowRight className="w-4 h-4 text-red-400" />
+                        <span className="text-sm text-red-600">Niet geslaagd</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Edit button */}
+                <button className="mt-4 flex items-center gap-2 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                  <Settings className="w-3.5 h-3.5" />
+                  Logica bewerken
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Simple question 3 */}
+          <div className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer">
+            <p className="flex-1 text-sm text-gray-700">Woon je in de regio Diest of kan je daar vlot geraken?</p>
+            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors" />
+          </div>
+        </div>
+
+        {/* Knockout Decision */}
+        <div className="relative flex items-start gap-4 pb-6">
+          <div className="absolute left-[11px] top-3 w-8 border-t-2 border-dashed border-red-300" />
+          <div className="relative z-10 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+            <X className="w-3 h-3 text-white" />
+          </div>
+          <div className="flex-1 -mt-0.5">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-dashed border-red-200 bg-white">
+              <UserX className="w-4 h-4 text-red-400" />
+              <span className="text-sm text-red-600">Niet geslaagd: Interesse in andere matches?</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Geslaagd */}
+        <div className="relative flex items-start gap-4 pb-4">
+          <div className="relative z-10 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+            <CheckCircle className="w-3 h-3 text-white" />
+          </div>
+          <div className="flex-1 -mt-0.5">
+            <p className="text-sm font-medium text-green-600">Geslaagd</p>
+          </div>
+        </div>
+
+        {/* KWALIFICERENDE VRAGEN */}
+        <div className="relative flex items-start gap-4 pb-2">
+          <div className="relative z-10 w-6 h-6 rounded-full bg-white border-2 border-gray-300 flex items-center justify-center">
+            <div className="w-2 h-2 rounded-full bg-gray-400" />
+          </div>
+          <div className="flex-1 -mt-0.5">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kwalificerende vragen</p>
+          </div>
+        </div>
+
+        <div className="relative pl-10 pb-6 space-y-2">
+          {dummyQuestions.qualifying.map((q) => (
+            <div 
+              key={q.id}
+              className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer"
+            >
+              <p className="flex-1 text-sm text-gray-700">{q.text}</p>
+              <ChevronDown className="w-4 h-4 text-gray-300 group-hover:text-gray-400 transition-colors" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Action Footer */}
+      <div className="mt-8 flex items-center justify-between">
+        <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors">
+          <Plus className="w-4 h-4" />
+          Stap toevoegen
+        </button>
+        <div className="flex items-center gap-3">
+          <button className="px-4 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+            Preview
+          </button>
+          <button className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors">
+            Publiceren
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// DESIGN VARIANT K: Detail Pane (Side Panel Editor)
+// ============================================
+function DesignVariantK() {
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>('k2');
+
+  return (
+    <div className="max-w-5xl mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-lg font-semibold text-gray-900">Variant K: Side Panel Editor</h2>
+        <p className="text-sm text-gray-500 mt-1">Select question to edit logic in detail pane</p>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Questions List */}
+        <div className="w-1/2 bg-white rounded-2xl shadow-sm border border-gray-100">
+          <div className="px-6 py-5 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Knockout vragen</h3>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {/* Question 1 */}
+            <button
+              onClick={() => setSelectedQuestion('k1')}
+              className={`w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors ${selectedQuestion === 'k1' ? 'bg-blue-50' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">1</span>
+                <p className="flex-1 text-sm text-gray-700">Ben je in het bezit van een geldige Belgische werkvergunning?</p>
+              </div>
+            </button>
+
+            {/* Question 2 - Complex */}
+            <button
+              onClick={() => setSelectedQuestion('k2')}
+              className={`w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors ${selectedQuestion === 'k2' ? 'bg-blue-50' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">2</span>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-700">{complexBranchingQuestion.text}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium">
+                      <GitBranch className="w-3 h-3" />
+                      4 opvolgvragen
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Question 3 */}
+            <button
+              onClick={() => setSelectedQuestion('k3')}
+              className={`w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors ${selectedQuestion === 'k3' ? 'bg-blue-50' : ''}`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">3</span>
+                <p className="flex-1 text-sm text-gray-700">Woon je in de regio Diest of kan je daar vlot geraken?</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Detail Pane */}
+        <div className="w-1/2 bg-white rounded-2xl shadow-sm border border-gray-100">
+          {selectedQuestion === 'k2' ? (
+            <>
+              <div className="px-6 py-5 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">Vraag logica bewerken</h3>
+                  <button className="p-1 hover:bg-gray-100 rounded transition-colors">
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 space-y-6">
+                {/* Main question */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">Vraag</label>
+                  <textarea 
+                    className="w-full p-3 rounded-lg border border-gray-200 text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    rows={2}
+                    defaultValue={complexBranchingQuestion.text}
+                  />
+                </div>
+
+                {/* Branches */}
+                <div className="space-y-4">
+                  {/* YES branch */}
+                  <div className="rounded-lg border border-green-200 bg-green-50/50 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
+                        <CheckCircle className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-green-700">Als JA</span>
+                    </div>
+                    <div className="ml-7">
+                      <select className="w-full p-2 rounded-lg border border-gray-200 text-sm bg-white">
+                        <option>Stel opvolgvraag</option>
+                        <option>Ga naar volgende vraag</option>
+                        <option>Markeer als geslaagd</option>
+                      </select>
+                      <div className="mt-3 p-3 rounded-lg bg-white border border-gray-200">
+                        <label className="block text-xs text-gray-500 mb-1">Opvolgvraag</label>
+                        <input 
+                          type="text"
+                          className="w-full p-2 rounded border border-gray-200 text-sm"
+                          defaultValue="Ben je beschikbaar om in het weekend te werken?"
+                        />
+                        {/* Nested branch indicator */}
+                        <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
+                          <GitBranch className="w-3 h-3" />
+                          <span>Deze vraag heeft ook conditionele logica</span>
+                          <button className="text-blue-500 hover:underline">Bewerken</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NO branch */}
+                  <div className="rounded-lg border border-red-200 bg-red-50/50 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                        <XCircle className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-red-700">Als NEE</span>
+                    </div>
+                    <div className="ml-7">
+                      <select className="w-full p-2 rounded-lg border border-gray-200 text-sm bg-white">
+                        <option>Markeer als niet geslaagd</option>
+                        <option>Stel opvolgvraag</option>
+                        <option>Ga naar volgende vraag</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Optional response */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">
+                    Optioneel: tekst voor opvolgvraag
+                  </label>
+                  <input 
+                    type="text"
+                    className="w-full p-3 rounded-lg border border-gray-200 text-sm"
+                    placeholder="bijv. 'Dat is al iets, we kunnen daar rekening mee houden.'"
+                  />
+                </div>
+
+                <button className="w-full py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors">
+                  Opslaan
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+              <Settings className="w-8 h-8 mb-2" />
+              <p className="text-sm">Selecteer een vraag om de logica te bewerken</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// DESIGN VARIANT L: Flowchart Nodes
+// ============================================
+function DesignVariantL() {
+  return (
+    <div className="max-w-5xl mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-lg font-semibold text-gray-900">Variant L: Flowchart Nodes</h2>
+        <p className="text-sm text-gray-500 mt-1">Node-based editor like a flowchart tool</p>
+      </div>
+
+      <div className="bg-gray-100 rounded-2xl p-8 min-h-[600px] relative overflow-hidden">
+        {/* Background grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #d1d5db 1px, transparent 1px)',
+            backgroundSize: '20px 20px',
+          }}
+        />
+
+        {/* Flow container */}
+        <div className="relative flex flex-col items-center">
+          {/* Start node */}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#c4e456] text-gray-900 shadow-sm">
+            <Play className="w-4 h-4" />
+            <span className="text-sm font-semibold">Start</span>
+          </div>
+          
+          <div className="w-px h-8 bg-gray-400" />
+
+          {/* Question 1 node */}
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4 w-80">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">1</span>
+              <span className="text-xs text-red-600 font-medium">Knockout</span>
+            </div>
+            <p className="text-sm text-gray-700">Ben je in het bezit van een geldige werkvergunning?</p>
+            <div className="flex justify-between mt-3">
+              <span className="text-xs text-green-600">JA →</span>
+              <span className="text-xs text-red-600">NEE →</span>
+            </div>
+          </div>
+
+          <div className="w-px h-8 bg-gray-400" />
+
+          {/* Question 2 node - Complex with visual branches */}
+          <div className="relative">
+            <div className="bg-white rounded-xl shadow-md border-2 border-purple-200 p-4 w-96">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs font-bold">2</span>
+                <span className="text-xs text-red-600 font-medium">Knockout</span>
+                <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 text-xs font-medium">
+                  <GitBranch className="w-3 h-3" />
+                  Complex
+                </span>
+              </div>
+              <p className="text-sm text-gray-700">{complexBranchingQuestion.text}</p>
+            </div>
+
+            {/* Branch connections */}
+            <div className="flex justify-between px-8 mt-4">
+              {/* NO branch */}
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+                  <XCircle className="w-3 h-3" />
+                  NEE
+                </div>
+                <div className="w-px h-6 bg-red-400" />
+                <div className="px-4 py-2 rounded-lg bg-red-50 border-2 border-dashed border-red-300 text-center">
+                  <UserX className="w-5 h-5 text-red-400 mx-auto mb-1" />
+                  <span className="text-xs text-red-600">Einde</span>
+                </div>
+              </div>
+
+              {/* YES branch */}
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                  <CheckCircle className="w-3 h-3" />
+                  JA
+                </div>
+                <div className="w-px h-6 bg-green-400" />
+                
+                {/* Follow-up sub-node */}
+                <div className="bg-white rounded-lg shadow border border-gray-200 p-3 w-64">
+                  <div className="flex items-center gap-1 mb-1">
+                    <CornerDownRight className="w-3 h-3 text-purple-400" />
+                    <span className="text-xs text-purple-600 font-medium">Opvolgvraag</span>
+                  </div>
+                  <p className="text-xs text-gray-600">Weekend beschikbaarheid?</p>
+                  <div className="flex justify-between mt-2 text-xs">
+                    <span className="text-green-500">JA: Vervoer vraag</span>
+                    <span className="text-amber-500">NEE: Hoogseizoen</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-px h-8 bg-gray-400 mt-8" />
+
+          {/* End nodes row */}
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-700 shadow-sm">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-sm font-semibold">Geslaagd</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+          <button className="p-2 rounded hover:bg-gray-100 transition-colors" title="Zoom in">
+            <Plus className="w-4 h-4 text-gray-600" />
+          </button>
+          <button className="p-2 rounded hover:bg-gray-100 transition-colors" title="Zoom out">
+            <span className="w-4 h-4 text-gray-600 block text-center leading-4">-</span>
+          </button>
+          <div className="w-px h-6 bg-gray-200" />
+          <button className="p-2 rounded hover:bg-gray-100 transition-colors" title="Add node">
+            <CircleDot className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// DESIGN VARIANT M: Rule Builder (Most Compact)
+// ============================================
+function DesignVariantM() {
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="text-center mb-8">
+        <h2 className="text-lg font-semibold text-gray-900">Variant M: Rule Builder</h2>
+        <p className="text-sm text-gray-500 mt-1">Compact rule-based logic like email filters</p>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div className="px-6 py-5 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900">Knockout vraag 2: 2-ploegensysteem</h3>
+          <p className="text-sm text-gray-500 mt-1">{complexBranchingQuestion.text}</p>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {/* Rule 1 */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+            <div className="shrink-0 w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+              <span className="text-xs font-bold text-gray-500">1</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-gray-600">Als antwoord is</span>
+                <span className="inline-flex items-center px-2 py-1 rounded bg-red-100 text-red-700 text-sm font-medium">NEE</span>
+                <span className="text-sm text-gray-600">dan</span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-50 border border-red-200 text-red-600 text-sm">
+                  <UserX className="w-3.5 h-3.5" />
+                  Niet geslaagd
+                </span>
+              </div>
+            </div>
+            <button className="p-1 rounded hover:bg-gray-200 transition-colors">
+              <Trash2 className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Rule 2 */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 border border-gray-200">
+            <div className="shrink-0 w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center">
+              <span className="text-xs font-bold text-gray-500">2</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-gray-600">Als antwoord is</span>
+                <span className="inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-700 text-sm font-medium">JA</span>
+                <span className="text-sm text-gray-600">dan</span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-purple-50 border border-purple-200 text-purple-600 text-sm">
+                  <CornerDownRight className="w-3.5 h-3.5" />
+                  Opvolgvraag
+                </span>
+              </div>
+              
+              {/* Nested sub-rule */}
+              <div className="mt-3 ml-4 p-3 rounded-lg bg-white border border-gray-200">
+                <p className="text-sm text-gray-700 mb-3">"Ben je beschikbaar voor weekendwerk?"</p>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="w-12 text-right">
+                      <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-xs font-medium">JA</span>
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-gray-400" />
+                    <span className="text-gray-600">Vraag over eigen vervoer</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="w-12 text-right">
+                      <span className="px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-xs font-medium">NEE</span>
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-gray-400" />
+                    <span className="text-gray-600">Vraag over hoogseizoen mogelijkheid</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button className="p-1 rounded hover:bg-gray-200 transition-colors">
+              <Pencil className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Add rule button */}
+          <button className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-500 transition-colors">
+            <Plus className="w-4 h-4" />
+            <span className="text-sm">Regel toevoegen</span>
+          </button>
+        </div>
+
+        {/* Footer with path summary */}
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl">
+          <p className="text-xs text-gray-500 mb-2">Mogelijke paden:</p>
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 border border-green-200 text-xs text-green-700">
+              <CheckCircle className="w-3 h-3" />
+              JA → JA → JA → Geslaagd
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 border border-green-200 text-xs text-green-700">
+              <CheckCircle className="w-3 h-3" />
+              JA → NEE → JA → ... → Geslaagd
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-50 border border-red-200 text-xs text-red-600">
+              <XCircle className="w-3 h-3" />
+              NEE → Niet geslaagd
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // Main Page Component
 // ============================================
 export default function DesignSandboxPage() {
-  const [activeVariant, setActiveVariant] = useState<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G'>('G');
+  const [activeVariant, setActiveVariant] = useState<'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L' | 'M'>('J');
 
   const variants = [
-    { id: 'E' as const, label: 'Minimal', desc: 'Clean list' },
-    { id: 'G' as const, label: 'Minimal+', desc: 'Subtle timeline' },
-    { id: 'F' as const, label: 'Full Flow', desc: 'Rich timeline' },
-    { id: 'C' as const, label: 'Timeline', desc: 'Connected flow' },
-    { id: 'B' as const, label: 'Workflow', desc: 'Operator-style' },
-    { id: 'A' as const, label: 'Two-Column', desc: 'Classic separated' },
-    { id: 'D' as const, label: 'Card Grid', desc: 'Compact cards' },
+    { id: 'J' as const, label: 'Timeline+', desc: 'Inline branches' },
+    { id: 'H' as const, label: 'Accordion', desc: 'Nested expand' },
+    { id: 'K' as const, label: 'Side Panel', desc: 'Detail editor' },
+    { id: 'I' as const, label: 'Tree View', desc: 'Visual branches' },
+    { id: 'L' as const, label: 'Flowchart', desc: 'Node-based' },
+    { id: 'M' as const, label: 'Rules', desc: 'If-then logic' },
+    { id: 'G' as const, label: 'Linear', desc: 'Current style' },
   ];
 
   return (
@@ -969,18 +1907,24 @@ export default function DesignSandboxPage() {
         {activeVariant === 'E' && <DesignVariantE />}
         {activeVariant === 'F' && <DesignVariantF />}
         {activeVariant === 'G' && <DesignVariantG />}
+        {activeVariant === 'H' && <DesignVariantH />}
+        {activeVariant === 'I' && <DesignVariantI />}
+        {activeVariant === 'J' && <DesignVariantJ />}
+        {activeVariant === 'K' && <DesignVariantK />}
+        {activeVariant === 'L' && <DesignVariantL />}
+        {activeVariant === 'M' && <DesignVariantM />}
       </div>
 
       {/* Design Brief Reference */}
       <div className="fixed bottom-6 right-6">
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 max-w-xs">
-          <h4 className="text-sm font-semibold text-gray-900 mb-2">Design Principles</h4>
+          <h4 className="text-sm font-semibold text-gray-900 mb-2">Branching Logic Concepts</h4>
           <ul className="text-xs text-gray-500 space-y-1">
-            <li>Clarity over density</li>
-            <li>Soft confidence (rounded, subtle)</li>
-            <li>AI-native, not AI-themed</li>
-            <li>Card-based architecture</li>
-            <li>Single blue accent</li>
+            <li>Sub-questions based on YES/NO</li>
+            <li>Multiple levels of nesting</li>
+            <li>Clear path visualization</li>
+            <li>Easy editing of conditions</li>
+            <li>Preview all possible paths</li>
           </ul>
         </div>
       </div>

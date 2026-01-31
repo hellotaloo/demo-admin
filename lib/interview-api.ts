@@ -115,6 +115,70 @@ export async function reorderQuestions(
   return data.interview;
 }
 
+/**
+ * Add a question instantly (no agent call).
+ * Use for manually adding knockout or qualification questions.
+ * New questions are appended to the end of the list.
+ */
+export async function addQuestion(
+  sessionId: string,
+  questionType: 'knockout' | 'qualification',
+  question: string,
+  idealAnswer?: string
+): Promise<{ added: string; question: InterviewQuestion; interview: Interview }> {
+  const response = await fetch(`${BACKEND_URL}/interview/add`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: sessionId,
+      question_type: questionType,
+      question,
+      ideal_answer: idealAnswer,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to add question');
+  }
+
+  const data = await response.json();
+  return {
+    added: data.added,
+    question: data.question,
+    interview: data.interview,
+  };
+}
+
+/**
+ * Delete a question instantly (no agent call).
+ * Use for removing knockout or qualification questions.
+ */
+export async function deleteQuestion(
+  sessionId: string,
+  questionId: string
+): Promise<{ deleted: string; interview: Interview }> {
+  const response = await fetch(`${BACKEND_URL}/interview/delete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      session_id: sessionId,
+      question_id: questionId,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to delete question');
+  }
+
+  const data = await response.json();
+  return {
+    deleted: data.deleted,
+    interview: data.interview,
+  };
+}
+
 export async function sendFeedback(
   sessionId: string,
   userMessage: string,
