@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   Target,
   SlidersHorizontal,
+  Smartphone,
 } from 'lucide-react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -62,6 +63,7 @@ const overzichtenItems = [
 ];
 
 const footerNavItems = [
+  { name: 'Testing', href: '/testing', icon: Smartphone },
   { name: 'Finetune', href: '/finetune', icon: SlidersHorizontal },
   { name: 'Admin', href: '/admin', icon: Settings },
   { name: 'Zoeken', href: '/search', icon: Search },

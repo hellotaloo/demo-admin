@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { RefreshCw, Check, ArrowUp, Square, Wrench, ChevronDown, FileText, ExternalLink } from 'lucide-react';
+import { ArrowUp, Square, Wrench, ChevronDown, FileText, ExternalLink } from 'lucide-react';
 import { ThinkingIndicator } from './ThinkingIndicator';
 import {
   Collapsible,
@@ -76,7 +76,6 @@ interface InterviewAssistantProps {
   initialMessage: string;
   onRegenerate: () => void;
   onQuestionsUpdate: (questions: GeneratedQuestion[]) => void;
-  onApprove?: () => void | Promise<void>;
   externalPrompt?: string;
   onExternalPromptConsumed?: () => void;
 }
@@ -95,7 +94,6 @@ export function InterviewAssistant({
   initialMessage,
   onRegenerate,
   onQuestionsUpdate,
-  onApprove,
   externalPrompt,
   onExternalPromptConsumed,
 }: InterviewAssistantProps) {
@@ -253,21 +251,6 @@ export function InterviewAssistant({
     setFeedbackThinkingContent(''); // Clear thinking content on error
   };
 
-  const handleApprove = async () => {
-    addMessage('assistant', 'De vragen zijn goedgekeurd! Je kunt nu verdergaan met het publiceren van het interview.');
-    if (onApprove) {
-      try {
-        const result = onApprove();
-        // If it's a promise, await it
-        if (result && typeof result.then === 'function') {
-          await result;
-        }
-      } catch (error) {
-        console.error('Failed to approve:', error);
-      }
-    }
-  };
-
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Fixed collapsible vacancy context card */}
@@ -359,35 +342,24 @@ export function InterviewAssistant({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick actions */}
+      {/* Prompt hints */}
       {isGenerated && !isGenerating && !isLoading && (
         <div className="px-6 py-2">
-          <div className="flex gap-2">
-            <button
-              onClick={onRegenerate}
-              disabled={isSaving}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Regenereer
-            </button>
-            <button
-              onClick={handleApprove}
-              disabled={isSaving}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                  Opslaan...
-                </>
-              ) : (
-                <>
-                  <Check className="w-3 h-3" />
-                  Goedkeuren
-                </>
-              )}
-            </button>
+          <div className="flex flex-wrap gap-2">
+            {[
+              'Analyseer interview',
+              'Dropoff detectie',
+              'Dubbel check',
+            ].map((hint) => (
+              <button
+                key={hint}
+                onClick={() => setInput(hint)}
+                disabled={isSaving}
+                className="inline-flex items-center px-3 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-full hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {hint}
+              </button>
+            ))}
           </div>
         </div>
       )}

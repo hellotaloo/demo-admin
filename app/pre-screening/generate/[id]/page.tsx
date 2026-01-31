@@ -10,9 +10,11 @@ import {
   ApplicationDetailPane,
   Application 
 } from '@/components/interview';
+import { IPhoneMockup } from '@/components/testing/IPhoneMockup';
+import { WhatsAppChat } from '@/components/testing/WhatsAppChat';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Pencil, Loader2 } from 'lucide-react';
+import { Pencil, Loader2, Phone, MessageSquare } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,6 +102,7 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
   const [initialMessage, setInitialMessage] = useState<string>('');
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
+  const [rightPanelView, setRightPanelView] = useState<'assistant' | 'whatsapp'>('assistant');
   const prevQuestionsRef = useRef<GeneratedQuestion[]>([]);
   const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -581,23 +584,55 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
             Concept
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="agent-online-edit" className="text-sm text-gray-400">
-            Agent online
-          </label>
-          <Switch
-            id="agent-online-edit"
-            checked={isAgentOnline}
-            disabled
-            className="data-[state=checked]:bg-green-500"
-          />
+        <div className="flex items-center gap-4">
+          {/* Test interview toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Test interview:</span>
+            <div className="flex rounded-lg overflow-hidden border border-gray-200">
+              <button
+                onClick={() => setRightPanelView('assistant')}
+                className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  rightPanelView === 'assistant'
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <Phone className="w-4 h-4" />
+                Bellen
+              </button>
+              <button
+                onClick={() => setRightPanelView('whatsapp')}
+                className={`px-3 py-1.5 text-sm font-medium flex items-center gap-1.5 transition-colors ${
+                  rightPanelView === 'whatsapp'
+                    ? 'bg-[#25D366] text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                WhatsApp
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label htmlFor="agent-online-edit" className="text-sm text-gray-400">
+              Agent online
+            </label>
+            <Switch
+              id="agent-online-edit"
+              checked={isAgentOnline}
+              disabled
+              className="data-[state=checked]:bg-green-500"
+            />
+          </div>
         </div>
       </div>
 
       <div className="border-t border-gray-200" />
 
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* Questions panel - 50% */}
+        <div className="w-1/2 overflow-y-auto p-6 min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="max-w-[720px] -mt-3">
             <InterviewQuestionsPanel 
               questions={questions} 
@@ -609,23 +644,13 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="hidden lg:flex w-[500px] flex-col border-l border-gray-200 min-h-0">
-          <InterviewAssistant
-            vacancyTitle={vacancy.title}
-            vacancyText={vacancy.description}
-            isGenerated={isGenerated}
-            isGenerating={isGenerating}
-            isSaving={isSaving}
-            sessionId={sessionId}
-            currentStatus={currentStatus}
-            generationThinkingContent={thinkingContent}
-            initialMessage={initialMessage}
-            onRegenerate={handleRegenerate}
-            onQuestionsUpdate={handleQuestionsUpdate}
-            onApprove={handleApprove}
-            externalPrompt={pendingPrompt}
-            onExternalPromptConsumed={() => setPendingPrompt('')}
-          />
+        {/* Phone mockup - 50% */}
+        <div className="hidden lg:flex w-1/2 flex-col border-l border-gray-200 min-h-0 items-center justify-center bg-gray-50 p-6">
+          <div className="transform scale-[0.85] origin-center">
+            <IPhoneMockup>
+              <WhatsAppChat />
+            </IPhoneMockup>
+          </div>
         </div>
       </div>
     </div>

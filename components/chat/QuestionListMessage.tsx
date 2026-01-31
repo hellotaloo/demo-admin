@@ -80,7 +80,7 @@ function QuestionItem({
 }) {
   if (variant === 'knockout') {
     return (
-      <div className="bg-slate-700 rounded-lg p-2">
+      <div className="bg-brand-dark-blue rounded-lg p-2">
         <p className="text-sm text-white">{question.text}</p>
       </div>
     );

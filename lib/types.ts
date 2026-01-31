@@ -2,6 +2,11 @@
 export type VacancyStatus = 'new' | 'draft' | 'in_progress' | 'agent_created' | 'screening_active' | 'archived';
 export type VacancySource = 'salesforce' | 'bullhorn' | 'manual';
 
+export interface VacancyChannels {
+  voice: boolean;
+  whatsapp: boolean;
+}
+
 export interface Vacancy {
   id: string;
   title: string;
@@ -13,7 +18,9 @@ export interface Vacancy {
   archivedAt?: string | null;
   source?: VacancySource | null;
   sourceId?: string | null;
-  hasPreScreening?: boolean; // True if pre-screening exists
+  hasScreening: boolean;        // True if pre-screening exists
+  isOnline: boolean | null;     // null=draft, true=online, false=offline
+  channels: VacancyChannels;    // Active channels for this pre-screening
 }
 
 // Question types

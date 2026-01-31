@@ -183,7 +183,12 @@ interface BackendVacancy {
   archived_at: string | null;
   source: 'salesforce' | 'bullhorn' | 'manual' | null;
   source_id: string | null;
-  has_pre_screening?: boolean;
+  has_screening: boolean;
+  is_online: boolean | null;
+  channels: {
+    voice: boolean;
+    whatsapp: boolean;
+  };
 }
 
 // Conversion helper
@@ -199,7 +204,9 @@ function convertVacancy(v: BackendVacancy): Vacancy {
     archivedAt: v.archived_at,
     source: v.source,
     sourceId: v.source_id,
-    hasPreScreening: v.has_pre_screening ?? false,
+    hasScreening: v.has_screening ?? false,
+    isOnline: v.is_online ?? null,
+    channels: v.channels ?? { voice: false, whatsapp: false },
   };
 }
 
@@ -391,6 +398,11 @@ export interface PreScreening {
   // Session fields for AI editing (auto-created by backend)
   session_id?: string;
   interview?: Interview;
+  // Publishing fields
+  published_at?: string | null;
+  is_online: boolean;
+  elevenlabs_agent_id?: string | null;
+  whatsapp_agent_id?: string | null;
 }
 
 export interface SavePreScreeningResponse {
@@ -455,4 +467,81 @@ export async function deletePreScreening(vacancyId: string): Promise<void> {
     const error = await response.json();
     throw new Error(error.detail || 'Failed to delete pre-screening');
   }
+}
+
+// =============================================================================
+// Pre-Screening Publishing API
+// =============================================================================
+
+export interface PublishPreScreeningRequest {
+  enable_voice?: boolean;
+  enable_whatsapp?: boolean;
+}
+
+export interface PublishPreScreeningResponse {
+  status: 'success';
+  published_at: string;
+  elevenlabs_agent_id?: string;
+  whatsapp_agent_id?: string;
+  is_online: boolean;
+  message: string;
+}
+
+export interface UpdateStatusRequest {
+  is_online: boolean;
+}
+
+export interface UpdateStatusResponse {
+  status: 'success';
+  is_online: boolean;
+  message: string;
+  elevenlabs_agent_id?: string;
+  whatsapp_agent_id?: string;
+}
+
+/**
+ * Publish a pre-screening and create AI agents.
+ * Publishing automatically sets the pre-screening online.
+ */
+export async function publishPreScreening(
+  vacancyId: string,
+  options: PublishPreScreeningRequest = {}
+): Promise<PublishPreScreeningResponse> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      enable_voice: options.enable_voice ?? true,
+      enable_whatsapp: options.enable_whatsapp ?? true,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to publish pre-screening' }));
+    throw new Error(error.detail || 'Failed to publish pre-screening');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update the online/offline status of a published pre-screening.
+ * Use for temporarily pausing agents without republishing.
+ */
+export async function updatePreScreeningStatus(
+  vacancyId: string,
+  isOnline: boolean
+): Promise<UpdateStatusResponse> {
+  const response = await fetch(`${BACKEND_URL}/vacancies/${vacancyId}/pre-screening/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_online: isOnline }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: 'Failed to update status' }));
+    throw new Error(error.detail || 'Failed to update status');
+  }
+
+  return response.json();
 }

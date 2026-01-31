@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { Check, ChevronDown, GripVertical, MessagesSquare, Pencil, Plus, UserX, Zap } from 'lucide-react';
+import { Check, ChevronDown, GripVertical, MessagesSquare, Pencil, Plus, UserX } from 'lucide-react';
+import { BoltIcon } from '@heroicons/react/24/solid';
 import { GeneratedQuestion } from './QuestionListMessage';
 import {
   DndContext,
@@ -29,9 +30,10 @@ interface InterviewQuestionsPanelProps {
   onQuestionClick?: (question: GeneratedQuestion, index: number) => void;
   onReorder?: (questions: GeneratedQuestion[]) => void;
   onAddQuestion?: (text: string, type: 'knockout' | 'qualifying') => void;
+  readOnly?: boolean;
 }
 
-export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion }: InterviewQuestionsPanelProps) {
+export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
   const knockoutQuestions = questions.filter(q => q.type === 'knockout');
   const qualifyingQuestions = questions.filter(q => q.type === 'qualifying');
   const hasQuestions = questions.length > 0;
@@ -148,15 +150,15 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
 
       {/* Trigger */}
       <TimelineItem animationDelay={triggerDelay}>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-full bg-white">
-          <Zap className="w-3.5 h-3.5 text-gray-500" />
-          <span className="text-xs font-medium text-gray-600">Nieuwe sollicitatie</span>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-lime-green">
+          <BoltIcon className="w-3.5 h-3.5 text-black" />
+          <span className="text-xs font-medium text-black">Nieuwe sollicitatie</span>
         </div>
       </TimelineItem>
 
       {/* Intro */}
       <TimelineItem animationDelay={introDelay}>
-        <div className="bg-slate-700 rounded-lg p-3">
+        <div className="bg-brand-dark-blue rounded-lg p-3">
           <p className="text-xs font-medium text-slate-400 mb-1">Intro</p>
           <p className="text-sm text-white">Begroet kandidaat en vraag of hij/zij nu wil starten met het interview. Geef aan hoelang het duurt.</p>
         </div>
@@ -164,11 +166,11 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
 
       {/* Knockout Questions */}
       <TimelineItem animationDelay={knockoutHeaderDelay} alignDot="top">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        <h4 className="text-xs font-normal text-black uppercase tracking-wide mb-2">
           Knock-out vragen
         </h4>
         <DndContext
-          sensors={sensors}
+          sensors={readOnly ? [] : sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleKnockoutDragEnd}
         >
@@ -185,14 +187,17 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   variant="knockout"
                   isHighlighted={highlightedIds.includes(question.id)}
                   animationDelay={knockoutQuestionsBaseDelay + index * 80}
-                  onClick={onQuestionClick}
+                  onClick={readOnly ? undefined : onQuestionClick}
+                  readOnly={readOnly}
                 />
               ))}
-              <AddQuestionInput 
-                type="knockout" 
-                onAdd={onAddQuestion}
-                placeholder="Voeg knock-out vraag toe..."
-              />
+              {!readOnly && (
+                <AddQuestionInput 
+                  type="knockout" 
+                  onAdd={onAddQuestion}
+                  placeholder="Voeg knock-out vraag toe..."
+                />
+              )}
             </div>
           </SortableContext>
         </DndContext>
@@ -219,11 +224,11 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
 
       {/* Qualifying Questions */}
       <TimelineItem animationDelay={qualifyingHeaderDelay} alignDot="top">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+        <h4 className="text-xs font-normal text-black uppercase tracking-wide mb-2">
           Kwalificerende vragen
         </h4>
         <DndContext
-          sensors={sensors}
+          sensors={readOnly ? [] : sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleQualifyingDragEnd}
         >
@@ -240,14 +245,17 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   variant="qualifying"
                   isHighlighted={highlightedIds.includes(question.id)}
                   animationDelay={qualifyingQuestionsBaseDelay + index * 80}
-                  onClick={onQuestionClick}
+                  onClick={readOnly ? undefined : onQuestionClick}
+                  readOnly={readOnly}
                 />
               ))}
-              <AddQuestionInput 
-                type="qualifying" 
-                onAdd={onAddQuestion}
-                placeholder="Voeg kwalificerende vraag toe..."
-              />
+              {!readOnly && (
+                <AddQuestionInput 
+                  type="qualifying" 
+                  onAdd={onAddQuestion}
+                  placeholder="Voeg kwalificerende vraag toe..."
+                />
+              )}
             </div>
           </SortableContext>
         </DndContext>
@@ -255,7 +263,7 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
 
       {/* Outcome */}
       <TimelineItem animationDelay={outcomeDelay}>
-        <div className="bg-slate-700 rounded-lg p-3 flex items-center gap-2">
+        <div className="bg-brand-dark-blue rounded-lg p-3 flex items-center gap-2">
           <div className="w-5 h-5 bg-white rounded flex items-center justify-center flex-shrink-0">
             <Image src="/outlook.png" alt="Outlook" width={14} height={14} className="object-contain" />
           </div>
@@ -357,7 +365,7 @@ function EmptyState({ isGenerating = false }: { isGenerating?: boolean }) {
 
       {/* Intro skeleton */}
       <SkeletonTimelineItem isAnimating={isGenerating}>
-        <div className={`bg-slate-700 rounded-lg p-3 ${isGenerating ? 'animate-pulse' : ''}`}>
+        <div className={`bg-brand-dark-blue rounded-lg p-3 ${isGenerating ? 'animate-pulse' : ''}`}>
           <div className="h-3 w-12 bg-slate-600 rounded mb-2" />
           <div className="h-4 bg-slate-600 rounded w-3/4" />
         </div>
@@ -383,7 +391,7 @@ function EmptyState({ isGenerating = false }: { isGenerating?: boolean }) {
 
       {/* Outcome skeleton */}
       <SkeletonTimelineItem isAnimating={isGenerating}>
-        <div className={`bg-slate-700 rounded-lg p-3 ${isGenerating ? 'animate-pulse' : ''}`}>
+        <div className={`bg-brand-dark-blue rounded-lg p-3 ${isGenerating ? 'animate-pulse' : ''}`}>
           <div className="h-4 bg-slate-600 rounded w-1/2" />
         </div>
       </SkeletonTimelineItem>
@@ -519,6 +527,7 @@ function SortableQuestionItem({
   isHighlighted = false,
   animationDelay = 0,
   onClick,
+  readOnly = false,
 }: { 
   question: GeneratedQuestion; 
   index: number;
@@ -526,6 +535,7 @@ function SortableQuestionItem({
   isHighlighted?: boolean;
   animationDelay?: number;
   onClick?: (question: GeneratedQuestion, index: number) => void;
+  readOnly?: boolean;
 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
   const [showChangeLabel, setShowChangeLabel] = useState(isHighlighted);
@@ -612,14 +622,16 @@ function SortableQuestionItem({
       onClick={handleCardClick}
     >
       <div className="flex items-center gap-2">
-        <button
-          className="shrink-0 p-0.5 -ml-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none self-center"
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="w-4 h-4" />
-        </button>
+        {!readOnly && (
+          <button
+            className="shrink-0 p-0.5 -ml-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none self-center"
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+        )}
         <div className="flex-1 flex items-center gap-2 min-w-0">
           <p className="text-sm text-gray-700 flex-1">{question.text}</p>
           {showChangeLabel && labelConfig && (
@@ -627,27 +639,29 @@ function SortableQuestionItem({
               {labelConfig.text}
             </span>
           )}
-          {/* Action icons - visible on hover */}
-          <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* Chat icon - ask about this question */}
-            {onClick && (
+          {/* Action icons - visible on hover, hidden in readOnly mode */}
+          {!readOnly && (
+            <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Chat icon - ask about this question */}
+              {onClick && (
+                <button
+                  onClick={handleChatClick}
+                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                  title="Vraag stellen over deze vraag"
+                >
+                  <MessagesSquare className="w-4 h-4" />
+                </button>
+              )}
+              {/* Edit icon - edit this question (functionality to be added) */}
               <button
-                onClick={handleChatClick}
+                onClick={(e) => e.stopPropagation()}
                 className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-                title="Vraag stellen over deze vraag"
+                title="Vraag bewerken"
               >
-                <MessagesSquare className="w-4 h-4" />
+                <Pencil className="w-4 h-4" />
               </button>
-            )}
-            {/* Edit icon - edit this question (functionality to be added) */}
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-              title="Vraag bewerken"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-          </div>
+            </div>
+          )}
           {/* Chevron for qualifying questions - always visible */}
           {hasIdealAnswer && (
             <button

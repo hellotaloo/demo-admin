@@ -1,6 +1,6 @@
 'use client';
 
-import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, List, Loader, Loader2, Info, ExternalLink, Calendar } from 'lucide-react';
+import { Phone, CheckCircle2, Users, MapPin, Building2, ArrowRight, Archive, Loader2, Info, ExternalLink, Calendar, Plus, Zap } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -155,16 +155,78 @@ function PendingSetup({
   );
 }
 
-function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vacancy[]; showArchiveDate?: boolean }) {
+// Status badge component for Generated table
+// Uses is_online field: null = draft, true = online, false = offline
+function StatusBadge({ isOnline }: { isOnline: boolean | null }) {
+  if (isOnline === true) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+        Online
+      </span>
+    );
+  }
+  
+  if (isOnline === false) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+        Offline
+      </span>
+    );
+  }
+  
+  // isOnline === null means draft (not published yet)
+  return (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+      Draft
+    </span>
+  );
+}
+
+// Channel icons component showing active channels
+function ChannelIcons({ channels }: { channels: { voice: boolean; whatsapp: boolean } }) {
+  const hasAnyChannel = channels.voice || channels.whatsapp;
+  
+  if (!hasAnyChannel) {
+    return <span className="text-gray-400 flex justify-center">-</span>;
+  }
+  
+  return (
+    <div className="flex items-center justify-center gap-2">
+      {channels.voice && (
+        <Image
+          src="/phone.png"
+          alt="Voice"
+          width={18}
+          height={18}
+          title="Voice channel active"
+        />
+      )}
+      {channels.whatsapp && (
+        <Image
+          src="/whatsapp.png"
+          alt="WhatsApp"
+          width={18}
+          height={18}
+          title="WhatsApp channel active"
+        />
+      )}
+    </div>
+  );
+}
+
+function GeneratedTable({ vacancies }: { vacancies: Vacancy[] }) {
   const router = useRouter();
   
   if (vacancies.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-          <Archive className="w-6 h-6 text-gray-400" />
+          <Zap className="w-6 h-6 text-gray-400" />
         </div>
-        <p className="text-sm text-gray-500">No vacancies found.</p>
+        <p className="text-sm text-gray-500">No generated pre-screenings yet.</p>
       </div>
     );
   }
@@ -174,10 +236,88 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vac
       <TableHeader>
         <TableRow>
           <TableHead className="w-full">Vacancy</TableHead>
-          <TableHead className="text-center">Pre-screening</TableHead>
+          <TableHead className="text-center">Channels</TableHead>
+          <TableHead className="text-center">Candidates</TableHead>
           <TableHead className="text-center">Completed</TableHead>
           <TableHead className="text-center">Qualified</TableHead>
-          <TableHead>{showArchiveDate ? 'Archived' : 'Last Pre-screening'}</TableHead>
+          <TableHead>Last Activity</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {vacancies.map((vacancy) => {
+          return (
+            <TableRow 
+              key={vacancy.id}
+              className="cursor-pointer"
+              onClick={() => router.push(`/pre-screening/view/${vacancy.id}`)}
+            >
+              <TableCell>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-900 truncate">
+                      {vacancy.title}
+                    </span>
+                    <StatusBadge isOnline={vacancy.isOnline} />
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Building2 className="w-3 h-3" />
+                      {vacancy.company}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      {vacancy.location}
+                    </span>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <ChannelIcons channels={vacancy.channels} />
+              </TableCell>
+              <TableCell className="text-center">
+                <span className="font-medium text-gray-400">-</span>
+              </TableCell>
+              <TableCell className="text-center">
+                <span className="font-medium text-gray-400">-</span>
+              </TableCell>
+              <TableCell className="text-center">
+                <span className="font-medium text-gray-400">-</span>
+              </TableCell>
+              <TableCell className="text-gray-500 text-sm">
+                -
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+function ArchivedTable({ vacancies }: { vacancies: Vacancy[] }) {
+  const router = useRouter();
+  
+  if (vacancies.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+          <Archive className="w-6 h-6 text-gray-400" />
+        </div>
+        <p className="text-sm text-gray-500">No archived vacancies.</p>
+      </div>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-full">Vacancy</TableHead>
+          <TableHead className="text-center">Channels</TableHead>
+          <TableHead className="text-center">Candidates</TableHead>
+          <TableHead className="text-center">Completed</TableHead>
+          <TableHead className="text-center">Qualified</TableHead>
+          <TableHead>Archived</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -205,6 +345,9 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vac
                   </div>
                 </div>
               </TableCell>
+              <TableCell>
+                <ChannelIcons channels={vacancy.channels} />
+              </TableCell>
               <TableCell className="text-center">
                 <span className="font-medium text-gray-400">-</span>
               </TableCell>
@@ -215,10 +358,7 @@ function VacanciesTable({ vacancies, showArchiveDate = false }: { vacancies: Vac
                 <span className="font-medium text-gray-400">-</span>
               </TableCell>
               <TableCell className="text-gray-500 text-sm">
-                {showArchiveDate 
-                  ? formatDate(vacancy.archivedAt)
-                  : '-'
-                }
+                {formatDate(vacancy.archivedAt)}
               </TableCell>
             </TableRow>
           );
@@ -255,8 +395,8 @@ function PreScreeningContent() {
     setShowAutoGenerateConfirm(false);
   };
   
-  // Get active tab from URL, default to 'recent'
-  const activeTab = searchParams.get('tab') || 'recent';
+  // Get active tab from URL, default to 'new'
+  const activeTab = searchParams.get('tab') || 'new';
   
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -284,10 +424,13 @@ function PreScreeningContent() {
   }, []);
 
   // Filter vacancies by status
-  const pendingVacancies = useMemo(() => 
-    vacancies.filter(v => v.status === 'new' || v.status === 'draft'), [vacancies]);
-  const runningVacancies = useMemo(() => 
-    vacancies.filter(v => v.status === 'in_progress' || v.status === 'agent_created' || v.status === 'screening_active'), [vacancies]);
+  // New: vacancies without pre-screening generated
+  const newVacancies = useMemo(() => 
+    vacancies.filter(v => v.status === 'new'), [vacancies]);
+  // Generated: vacancies with pre-screening (draft, in_progress, agent_created, screening_active)
+  const generatedVacancies = useMemo(() => 
+    vacancies.filter(v => v.status === 'draft' || v.status === 'in_progress' || v.status === 'agent_created' || v.status === 'screening_active'), [vacancies]);
+  // Archived: archived vacancies
   const archivedVacancies = useMemo(() => 
     vacancies.filter(v => v.status === 'archived'), [vacancies]);
 
@@ -381,18 +524,18 @@ function PreScreeningContent() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-2">
         <div className="flex items-center justify-between">
           <TabsList variant="line">
-            <TabsTrigger value="recent">
-              <List className="w-3.5 h-3.5" />
-              Recently Added
+            <TabsTrigger value="new">
+              <Plus className="w-3.5 h-3.5" />
+              New
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                {pendingVacancies.length}
+                {newVacancies.length}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="running">
-              <Loader className="w-3.5 h-3.5" />
-              Running
+            <TabsTrigger value="generated">
+              <Zap className="w-3.5 h-3.5" />
+              Generated
               <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                {runningVacancies.length}
+                {generatedVacancies.length}
               </span>
             </TabsTrigger>
             <TabsTrigger value="archived">
@@ -426,19 +569,19 @@ function PreScreeningContent() {
           </div>
         </div>
         
-        <TabsContent value="recent" className="">
+        <TabsContent value="new" className="">
           <PendingSetup 
-            vacancies={pendingVacancies} 
+            vacancies={newVacancies} 
             onViewSource={setSelectedVacancy} 
           />
         </TabsContent>
         
-        <TabsContent value="running" className="">
-          <VacanciesTable vacancies={runningVacancies} />
+        <TabsContent value="generated" className="">
+          <GeneratedTable vacancies={generatedVacancies} />
         </TabsContent>
         
         <TabsContent value="archived" className="">
-          <VacanciesTable vacancies={archivedVacancies} showArchiveDate />
+          <ArchivedTable vacancies={archivedVacancies} />
         </TabsContent>
       </Tabs>
       </div>
@@ -553,10 +696,10 @@ function PreScreeningContent() {
             <AlertDialogTitle>Enable auto-generate?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-sm text-gray-600">
-                {pendingVacancies.length > 0 ? (
+                {newVacancies.length > 0 ? (
                   <p>
                     This will create pre-screening interviews for your{' '}
-                    <span className="font-medium text-gray-900">{pendingVacancies.length} pending</span> and all future vacancies.
+                    <span className="font-medium text-gray-900">{newVacancies.length} new</span> and all future vacancies.
                   </p>
                 ) : (
                   <p>

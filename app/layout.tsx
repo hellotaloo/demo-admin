@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Hedvig_Letters_Serif } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
@@ -48,6 +49,7 @@ export default function RootLayout({
               </div>
             </SidebarInset>
           </SidebarProvider>
+          <Toaster position="bottom-right" richColors />
         </Theme>
       </body>
     </html>
