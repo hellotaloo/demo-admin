@@ -73,6 +73,7 @@ function convertToComponentApplication(app: BackendApplication): Application {
     timestamp: app.startedAt,
     synced: app.synced,
     channel: app.channel,
+    interviewSlot: app.interviewSlot,
     answers: app.answers.map(a => ({
       questionId: a.questionId,
       questionText: a.questionText,

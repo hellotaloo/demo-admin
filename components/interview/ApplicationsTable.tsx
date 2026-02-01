@@ -25,6 +25,17 @@ function formatDate(dateString: string) {
   return date.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function formatInterviewSlot(dateString: string | null | undefined) {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  return date.toLocaleDateString('nl-BE', { 
+    day: 'numeric', 
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function ApplicationsTable({ 
   applications, 
   selectedId,
@@ -67,6 +78,7 @@ export function ApplicationsTable({
         <TableRow>
           <TableHead className="w-full">Kandidaat</TableHead>
           <TableHead className="px-4 text-center">Score</TableHead>
+          <TableHead className="px-4">Interview slot</TableHead>
           <TableHead className="px-4 text-center">Kanaal</TableHead>
           <TableHead className="px-4">Datum</TableHead>
           <TableHead className="px-4">Interactietijd</TableHead>
@@ -111,6 +123,9 @@ export function ApplicationsTable({
             </TableCell>
             <TableCell className="px-4 text-center">
               <OverallScoreBadge score={application.overallScore} completed={application.completed} />
+            </TableCell>
+            <TableCell className="px-4 text-gray-500 text-sm">
+              {formatInterviewSlot(application.interviewSlot) || '-'}
             </TableCell>
             <TableCell className="px-4 text-center">
               <ChannelIcon channel={application.channel} />

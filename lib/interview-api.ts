@@ -361,6 +361,7 @@ interface BackendApplication {
   answers: BackendQuestionAnswer[];
   synced: boolean;
   synced_at: string | null;
+  interview_slot?: string | null;
 }
 
 function convertApplication(a: BackendApplication): Application {
@@ -389,6 +390,7 @@ function convertApplication(a: BackendApplication): Application {
     })),
     synced: a.synced,
     syncedAt: a.synced_at,
+    interviewSlot: a.interview_slot,
   };
 }
 

@@ -126,6 +126,7 @@ export interface Application {
   answers: ApplicationAnswer[];
   synced: boolean;
   syncedAt?: string | null;
+  interviewSlot?: string | null;
 }
 
 // Metrics types

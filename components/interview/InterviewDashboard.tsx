@@ -20,6 +20,7 @@ export interface Application {
   timestamp: string;
   synced?: boolean;
   channel: 'voice' | 'whatsapp';
+  interviewSlot?: string | null;
   answers: {
     questionId: string;
     questionText: string;

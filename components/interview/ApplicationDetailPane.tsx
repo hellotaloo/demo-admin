@@ -93,7 +93,7 @@ export function ApplicationDetailPane({ application, onClose }: ApplicationDetai
             )}
           </div>
           {/* Secondary stats row */}
-          <div className="flex items-center gap-4 px-1 text-xs text-gray-500">
+          <div className="flex items-center gap-4 px-1 pt-2 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
               {application.interactionTime}
