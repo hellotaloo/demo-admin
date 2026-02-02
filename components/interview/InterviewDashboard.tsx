@@ -53,18 +53,6 @@ export function InterviewDashboard({ applications }: InterviewDashboardProps) {
     ? Math.round((qualifiedCount / completedCount) * 100) 
     : 0;
 
-  const dropOffRate = totalApplications > 0
-    ? Math.round(((totalApplications - completedCount) / totalApplications) * 100)
-    : 0;
-
-  const difficultyLabel = totalApplications === 0
-    ? '—'
-    : qualificationRate >= 70
-      ? 'Laag'
-      : qualificationRate >= 40
-        ? 'Gemiddeld'
-        : 'Hoog';
-
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <MetricCard
@@ -100,26 +88,8 @@ export function InterviewDashboard({ applications }: InterviewDashboardProps) {
           <BarChart3 className="w-4 h-4" />
           Insights
         </div>
-        <div className="my-3 flex-1 flex flex-col gap-2 justify-center">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Drop-off risico</span>
-            <span className="font-semibold text-gray-900">{dropOffRate}%</span>
-          </div>
-          <div className="w-full h-2 rounded-full bg-purple-200">
-            <div
-              className="h-full rounded-full bg-purple-500 transition-all"
-              style={{ width: `${Math.min(100, dropOffRate)}%` }}
-            />
-          </div>
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Moeilijkheid</span>
-            <span className="font-semibold text-gray-900">{difficultyLabel}</span>
-          </div>
-        </div>
-        <div className="text-xs text-gray-600 mt-auto">
-          {totalApplications > 0
-            ? `${totalApplications - completedCount} afgehaakt · gebaseerd op kwalificatie`
-            : 'Geen data'}
+        <div className="my-3 flex-1 flex items-center justify-center">
+          <span className="text-sm text-gray-600">Niet genoeg data</span>
         </div>
       </div>
     </div>
