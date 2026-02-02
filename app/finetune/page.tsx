@@ -35,11 +35,11 @@ const agentConfig: Record<FinetuneAgent, { label: string; icon: React.ElementTyp
     description: 'Overkoepelende stijl & tone of voice',
   },
   'pre-screening': {
-    label: 'Pre-screening agent',
+    label: 'Pre-screening',
     icon: Phone,
     bgClass: 'bg-brand-blue',
     iconClass: 'text-white',
-    description: 'Hoe de agent kandidaten screent',
+    description: 'Hoe kandidaten worden gescreend',
   },
   'interview-generator': {
     label: 'Interview generator',
@@ -50,8 +50,8 @@ const agentConfig: Record<FinetuneAgent, { label: string; icon: React.ElementTyp
   },
 };
 
-// Order for display
-const agentOrder: FinetuneAgent[] = ['general', 'pre-screening', 'interview-generator'];
+// Order for display: Algemeen, interview generator, pre-screening (zonder agent)
+const agentOrder: FinetuneAgent[] = ['general', 'interview-generator', 'pre-screening'];
 
 // Category configuration
 const categoryConfig: Record<FinetuneCategory, { label: string; description: string }> = {
@@ -80,10 +80,10 @@ export default function FinetunePage() {
   const [newInstruction, setNewInstruction] = useState('');
   const [selectedAgent, setSelectedAgent] = useState<FinetuneAgent>('general');
   const [selectedCategory, setSelectedCategory] = useState<FinetuneCategory>('brand');
-  const [expandedAgents, setExpandedAgents] = useState<Record<FinetuneAgent, boolean>>({
-    'pre-screening': true,
-    'interview-generator': true,
-    'general': true,
+  const   [expandedAgents, setExpandedAgents] = useState<Record<FinetuneAgent, boolean>>({
+    'pre-screening': false,
+    'interview-generator': false,
+    'general': false,
   });
 
   // Group instructions by agent
@@ -151,10 +151,10 @@ export default function FinetunePage() {
       {/* Header */}
       <div className="space-y-1">
         <Heading size="6" className="text-foreground">
-          Finetune Taloo
+          Finetune
         </Heading>
         <Text size="2" className="text-gray-500">
-          Voeg gedragsregels toe die bepalen hoe Taloo werkt voor jouw team en bedrijf.
+        Geef richting aan hoe Taloo denkt, werkt en reageert.
         </Text>
       </div>
 

@@ -391,15 +391,7 @@ export const dummyMetrics = calculateInterviewMetrics(dummyInterviews, dummyVaca
 
 // Fine-tune instructions
 export const dummyFinetuneInstructions: FinetuneInstruction[] = [
-  // Pre-screening agent instructions
-  {
-    id: 'ft-0',
-    agent: 'pre-screening',
-    category: 'checks',
-    instruction: 'Mag je wettelijk werken in België (met of zonder werkvergunning)? (ALTIJD als eerste knockout vraag!)',
-    isActive: true,
-    createdAt: '2026-01-20T10:00:00Z',
-  },
+  // Pre-screening (zonder agent) instructions
   {
     id: 'ft-4',
     agent: 'pre-screening',
@@ -407,14 +399,6 @@ export const dummyFinetuneInstructions: FinetuneInstruction[] = [
     instruction: 'Twijfel = doorvragen, niet afwijzen',
     isActive: true,
     createdAt: '2026-01-12T11:00:00Z',
-  },
-  {
-    id: 'ft-6',
-    agent: 'pre-screening',
-    category: 'depth',
-    instruction: 'Vraag altijd naar concrete voorbeelden',
-    isActive: true,
-    createdAt: '2026-01-10T10:30:00Z',
   },
   {
     id: 'ft-8',
@@ -425,6 +409,14 @@ export const dummyFinetuneInstructions: FinetuneInstruction[] = [
     createdAt: '2026-01-08T13:45:00Z',
   },
   // Interview generator instructions
+  {
+    id: 'ft-0',
+    agent: 'interview-generator',
+    category: 'focus',
+    instruction: 'Mag je wettelijk werken in België (met of zonder werkvergunning)? (ALTIJD als eerste knockout vraag!)',
+    isActive: true,
+    createdAt: '2026-01-20T10:00:00Z',
+  },
   {
     id: 'ft-9',
     agent: 'interview-generator',
