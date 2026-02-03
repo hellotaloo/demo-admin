@@ -16,6 +16,8 @@ import {
   Target,
   SlidersHorizontal,
   Smartphone,
+  Users,
+  UserPlus,
 } from 'lucide-react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -56,11 +58,14 @@ const mainNavItems = [
 
 const primaryNavItems = [
   { name: 'Inbox', href: '/inbox', icon: Inbox },
+  { name: 'Insights', href: '/insights', icon: Target },
 ];
 
 const overzichtenItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'newVacancies' as const },
-  { name: 'Insights', href: '/insights', icon: Target, badge: '2' },
+  { name: 'Vacatures', href: '/vacatures', icon: Briefcase },
+  { name: 'Kandidaten', href: '/kandidaten', icon: Users },
+  { name: 'Onboarding', href: '/onboarding', icon: UserPlus },
 ];
 
 const footerNavItems = [

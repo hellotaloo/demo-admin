@@ -16,6 +16,9 @@ const pageTitles: Record<string, string> = {
   '/finetune': 'Finetune',
   '/admin': 'Admin',
   '/search': 'Zoeken',
+  '/vacatures': 'Vacatures',
+  '/kandidaten': 'Kandidaten',
+  '/onboarding': 'Onboarding',
 };
 
 function getPageTitle(pathname: string): string {
