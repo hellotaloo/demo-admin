@@ -32,6 +32,16 @@ interface TriggerInterviewDialogProps {
   hasCv: boolean;
 }
 
+// Random Dutch names for testing
+const DUTCH_FIRST_NAMES = ['Jan', 'Pieter', 'Koen', 'Daan', 'Luuk', 'Bram', 'Lars', 'Sven', 'Thijs', 'Ruben', 'Eva', 'Lotte', 'Fleur', 'Sanne', 'Femke'];
+const DUTCH_LAST_NAMES = ['de Jong', 'Jansen', 'de Vries', 'Bakker', 'Visser', 'Smit', 'Mulder', 'de Boer', 'Peters', 'Hendriks'];
+
+function getRandomName() {
+  const firstName = DUTCH_FIRST_NAMES[Math.floor(Math.random() * DUTCH_FIRST_NAMES.length)];
+  const lastName = DUTCH_LAST_NAMES[Math.floor(Math.random() * DUTCH_LAST_NAMES.length)];
+  return { firstName, lastName };
+}
+
 type ApplicationMethod = 'email' | 'whatsapp' | 'phone';
 type PhoneContactMethod = 'whatsapp' | 'phone';
 type CvSubmissionStep = 'form' | 'processing' | 'confirmation';
@@ -62,10 +72,11 @@ export function TriggerInterviewDialog({
   const [processingStepIndex, setProcessingStepIndex] = useState(0);
   const [cvResult, setCvResult] = useState<CVAnalysisResult | null>(null);
   const [cvError, setCvError] = useState<string | null>(null);
-  // Phone section fields
-  const [phoneFirstName, setPhoneFirstName] = useState('');
-  const [phoneLastName, setPhoneLastName] = useState('');
-  const [phoneValue, setPhoneValue] = useState('+32 ');
+  // Phone section fields - pre-filled with random Dutch name for testing
+  const [randomName] = useState(() => getRandomName());
+  const [phoneFirstName, setPhoneFirstName] = useState(randomName.firstName);
+  const [phoneLastName, setPhoneLastName] = useState(randomName.lastName);
+  const [phoneValue, setPhoneValue] = useState('+32 487441391');
   // Default to whichever channel is available
   const defaultPhoneMethod: PhoneContactMethod = hasWhatsApp ? 'whatsapp' : 'phone';
   const [phoneContactMethod, setPhoneContactMethod] = useState<PhoneContactMethod>(defaultPhoneMethod);
@@ -186,11 +197,12 @@ export function TriggerInterviewDialog({
           toast.success('WhatsApp bericht verzonden!');
         }
         
-        // Close dialog and reset
+        // Close dialog and reset with new random name
+        const newName = getRandomName();
         onOpenChange(false);
-        setPhoneFirstName('');
-        setPhoneLastName('');
-        setPhoneValue('+32 ');
+        setPhoneFirstName(newName.firstName);
+        setPhoneLastName(newName.lastName);
+        setPhoneValue('+32 487441391');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Er ging iets mis';
