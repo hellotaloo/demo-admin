@@ -19,7 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Text, Flex } from '@radix-ui/themes';
 import { Button } from '@/components/ui/button';
-import { ChatAssistant, PromptSuggestion } from '@/components/chat/ChatAssistant';
+import { ChatAssistant, type PromptSuggestion } from '@/components/kit/chat';
 
 // Insight data structure
 interface Insight {

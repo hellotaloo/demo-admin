@@ -20,6 +20,8 @@ export interface Vacancy {
   source?: VacancySource | null;
   sourceId?: string | null;
   hasScreening: boolean;        // True if pre-screening exists
+  hasOnboarding?: boolean;      // True if pre-onboarding exists
+  job_type?: JobType;           // Job type for document requirements
   isOnline: boolean | null;     // null=draft, true=online, false=offline
   channels: VacancyChannels;    // Active channels for this pre-screening
   // Stats fields
@@ -301,4 +303,60 @@ export interface SimulationListResponse {
   total: number;
   limit: number;
   offset: number;
+}
+
+// =============================================================================
+// Pre-Onboarding Types
+// =============================================================================
+
+// Job types
+export type JobType = 'jobstudent' | 'arbeider' | 'bediende' | 'flex';
+export type NationalityStatus = 'belg' | 'niet-belg';
+
+// Document types
+export type DocumentType =
+  | 'id_card'
+  | 'driver_license'
+  | 'work_permit'
+  | 'medical_certificate'
+  | 'certificate_diploma'
+  | 'bank_account';
+
+// Pre-onboarding config
+export interface PreOnboardingConfig {
+  id: string;
+  vacancy_id: string;
+  job_type: JobType;
+  required_documents: DocumentType[];
+  status: 'draft' | 'active' | 'archived';
+  is_online: boolean;
+  created_at: string;
+  updated_at: string;
+  published_at?: string | null;
+}
+
+// Document collection status
+export interface DocumentCollectionStatus {
+  document_type: DocumentType;
+  collected: boolean;
+  verified: boolean;
+  uploaded_at?: string;
+}
+
+// Document collection request
+export interface PreOnboardingRequest {
+  id: string;
+  vacancy_id: string;
+  application_id: string;
+  conversation_id?: string | null;
+  candidate_name: string;
+  candidate_lastname: string;
+  whatsapp_number: string;
+  nationality?: NationalityStatus;
+  documents_required: DocumentType[];
+  documents_collected: DocumentCollectionStatus[];
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
 }

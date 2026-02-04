@@ -1,7 +1,6 @@
 'use client';
 
-import { IPhoneMockup } from '@/components/testing/IPhoneMockup';
-import { WhatsAppChat } from '@/components/testing/WhatsAppChat';
+import { IPhoneMockup, WhatsAppChat } from '@/components/blocks/phone-simulator';
 
 export default function TestingPage() {
   return (

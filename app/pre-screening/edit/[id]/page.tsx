@@ -2,17 +2,18 @@
 
 import { use, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { InterviewQuestionsPanel } from '@/components/chat/InterviewQuestionsPanel';
-import { InterviewAssistant } from '@/components/chat/InterviewAssistant';
-import { GeneratedQuestion } from '@/components/chat/QuestionListMessage';
-import { IPhoneMockup } from '@/components/testing/IPhoneMockup';
-import { WhatsAppChat, ChatScenario } from '@/components/testing/WhatsAppChat';
-import { 
-  InterviewDashboard, 
-  ApplicationsTable, 
+import {
+  InterviewQuestionsPanel,
+  InterviewAssistant,
+  GeneratedQuestion,
+} from '@/components/blocks/interview-editor';
+import { IPhoneMockup, WhatsAppChat, ChatScenario } from '@/components/blocks/phone-simulator';
+import {
+  InterviewDashboard,
+  ApplicationsTable,
   ApplicationDetailPane,
-  Application 
-} from '@/components/interview';
+  Application
+} from '@/components/blocks/application-dashboard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,9 +43,12 @@ import {
   updatePreScreeningStatus,
   updateChannelStatus,
 } from '@/lib/interview-api';
-import { PublishDialog, PublishChannels } from '@/components/pre-screening/PublishDialog';
-import { TriggerInterviewDialog } from '@/components/pre-screening/TriggerInterviewDialog';
-import { ChannelStatusPopover } from '@/components/pre-screening/ChannelStatusPopover';
+import {
+  PublishDialog,
+  PublishChannels,
+  TriggerInterviewDialog,
+  ChannelStatusPopover,
+} from '@/components/blocks/channel-management';
 import { toast } from 'sonner';
 import { Vacancy } from '@/lib/types';
 import { convertToComponentApplication } from '@/lib/pre-screening-utils';

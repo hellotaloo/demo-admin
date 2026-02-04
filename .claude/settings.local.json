@@ -5,7 +5,8 @@
       "Bash(pkill:*)",
       "Bash(curl:*)",
       "Bash(grep:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

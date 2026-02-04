@@ -1,17 +1,18 @@
 'use client';
 
 import { use, useState, useEffect, useCallback, useRef } from 'react';
-import { InterviewQuestionsPanel } from '@/components/chat/InterviewQuestionsPanel';
-import { InterviewAssistant } from '@/components/chat/InterviewAssistant';
-import { GeneratedQuestion } from '@/components/chat/QuestionListMessage';
-import { 
-  InterviewDashboard, 
-  ApplicationsTable, 
+import {
+  InterviewQuestionsPanel,
+  InterviewAssistant,
+  GeneratedQuestion,
+} from '@/components/blocks/interview-editor';
+import {
+  InterviewDashboard,
+  ApplicationsTable,
   ApplicationDetailPane,
-  Application 
-} from '@/components/interview';
-import { IPhoneMockup } from '@/components/testing/IPhoneMockup';
-import { WhatsAppChat } from '@/components/testing/WhatsAppChat';
+  Application
+} from '@/components/blocks/application-dashboard';
+import { IPhoneMockup, WhatsAppChat } from '@/components/blocks/phone-simulator';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Pencil, Loader2, Phone, MessageSquare } from 'lucide-react';

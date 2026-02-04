@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Vacancy } from '@/lib/types';
 import { getVacancies } from '@/lib/interview-api';
-import { MetricCard, ChannelCard } from '@/components/metrics';
+import { MetricCard, ChannelCard } from '@/components/kit/metric-card';
 
 function PendingSetup({ vacancies }: { vacancies: Vacancy[] }) {
   if (vacancies.length === 0) {

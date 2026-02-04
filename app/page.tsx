@@ -9,7 +9,7 @@ import {
   PromptInputTextarea,
 } from '@/components/prompt-kit/prompt-input';
 import { Button } from '@/components/ui/button';
-import { ThinkingIndicator } from '@/components/chat/ThinkingIndicator';
+import { ThinkingIndicator } from '@/components/kit/chat';
 import ReactMarkdown from 'react-markdown';
 import { queryAnalyst, AnalystSSEEvent } from '@/lib/analyst-api';
 

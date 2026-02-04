@@ -8,7 +8,8 @@ import {
   Star,
   Clock,
 } from 'lucide-react';
-import { MetricCard, ChannelSplit, PopularVacancies } from '@/components/metrics';
+import { MetricCard, ChannelSplit } from '@/components/kit/metric-card';
+import { PopularVacancies } from '@/components/metrics';
 import { dummyMetrics, dummyInterviews } from '@/lib/dummy-data';
 
 // Calculate additional metrics

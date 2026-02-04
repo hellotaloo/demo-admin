@@ -1,4 +1,4 @@
-import { Application as ComponentApplication } from '@/components/interview';
+import { Application as ComponentApplication } from '@/components/blocks/application-dashboard';
 import { Application as BackendApplication } from '@/lib/types';
 
 /**
