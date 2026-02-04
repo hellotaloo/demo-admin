@@ -237,13 +237,11 @@ export default function PreOnboardingPage() {
           title="Totaal verzoeken"
           value={stats.totalRequests}
           icon={FileCheck}
-          trend={{ value: 12, isPositive: true }}
         />
         <MetricCard
           title="Afrondingspercentage"
           value={`${stats.completionRate}%`}
           icon={CheckCircle2}
-          trend={{ value: 5, isPositive: true }}
         />
         <MetricCard
           title="Volledig verzameld"
