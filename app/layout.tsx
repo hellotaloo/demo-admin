@@ -3,9 +3,6 @@ import { Inter, Hedvig_Letters_Serif } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
 import { Toaster } from "sonner";
 import "./globals.css";
-import { AppSidebar } from "@/components/layout/AppSidebar";
-import { Header } from "@/components/layout/Header";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -40,15 +37,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} ${hedvigLetters.variable} antialiased`}>
         <Theme accentColor="blue" grayColor="slate" radius="medium" scaling="100%">
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset className="flex flex-col h-screen overflow-hidden">
-              <Header />
-              <div className="flex-1 overflow-auto p-6 bg-white">
-                {children}
-              </div>
-            </SidebarInset>
-          </SidebarProvider>
+          {children}
           <Toaster position="bottom-right" richColors />
         </Theme>
       </body>
