@@ -19,7 +19,10 @@
       "Bash(git push:*)",
       "Bash(git stash push:*)",
       "Bash(git stash:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git fetch:*)",
+      "Bash(npm run lint:*)",
+      "Bash(find:*)"
     ]
   }
 }

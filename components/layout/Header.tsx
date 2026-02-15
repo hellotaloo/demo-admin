@@ -6,72 +6,20 @@ import {
   Plus,
   HelpCircle,
   X,
-  FileText,
-  Inbox,
-  Phone,
-  FileCheck,
-  ScanSearch,
-  SlidersHorizontal,
-  Settings,
-  LayoutList,
-  Mic,
-  type LucideIcon,
 } from 'lucide-react';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { usePathname } from 'next/navigation';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SystemStatus } from './SystemStatus';
+import { getPageConfig } from '@/lib/page-registry';
 
-type PageConfig = {
-  title: string;
-  icon: LucideIcon | typeof PencilSquareIcon;
-};
-
-// Map pathnames to page titles and icons
-const pageConfigs: Record<string, PageConfig> = {
-  '/': { title: 'Nieuw gesprek', icon: PencilSquareIcon },
-  '/inbox': { title: 'Inbox', icon: Inbox },
-  '/overviews': { title: 'Overzichten', icon: LayoutList },
-  '/pre-screening': { title: 'Pre-screening', icon: Phone },
-  '/pre-screening/settings': { title: 'Pre-screening instellingen', icon: Settings },
-  '/pre-onboarding': { title: 'Pre-onboarding', icon: FileCheck },
-  '/insights': { title: 'Pattern Finder', icon: ScanSearch },
-  '/finetune': { title: 'Finetune', icon: SlidersHorizontal },
-  '/admin': { title: 'Admin', icon: Settings },
-  '/admin/voice-settings': { title: 'Voice instellingen', icon: Mic },
-  '/agent-settings/voice': { title: 'Voice Agent', icon: Mic },
-  // Legacy routes
-  '/metrics': { title: 'Pre-screening Metrics', icon: Phone },
-  '/knockout-interviews': { title: 'Pre-screening', icon: Phone },
-  '/search': { title: 'Zoeken', icon: ScanSearch },
-  '/vacatures': { title: 'Vacatures', icon: LayoutList },
-  '/kandidaten': { title: 'Kandidaten', icon: LayoutList },
-  '/onboarding': { title: 'Onboarding', icon: FileCheck },
-};
-
-// Dynamic route patterns with their configs
-const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
-  { pattern: /^\/pre-screening\/edit\//, config: { title: 'Pre-screening bewerken', icon: Phone } },
-  { pattern: /^\/pre-screening\/view\//, config: { title: 'Pre-screening', icon: Phone } },
-  { pattern: /^\/pre-screening\/generate\//, config: { title: 'Pre-screening', icon: Phone } },
-  { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
-  { pattern: /^\/pre-onboarding\/generate\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
-];
-
-const defaultConfig: PageConfig = { title: 'Nieuw tabblad', icon: FileText };
-
-function getPageConfig(pathname: string): PageConfig {
-  // Check exact match first
-  if (pageConfigs[pathname]) return pageConfigs[pathname];
-
-  // Check for dynamic routes
-  for (const { pattern, config } of dynamicRoutes) {
-    if (pattern.test(pathname)) return config;
-  }
-
-  return defaultConfig;
-}
-
+/**
+ * Application header with page tab bar.
+ *
+ * The page title and icon are determined by the current pathname
+ * using the page registry at `lib/page-registry.ts`.
+ *
+ * If a page shows "Nieuw tabblad", add it to the page registry!
+ */
 export function Header() {
   const pathname = usePathname();
   const { title: pageTitle, icon: PageIcon } = getPageConfig(pathname);
@@ -91,7 +39,7 @@ export function Header() {
         </button>
       </div>
 
-      {/* Tab bar */}
+      {/* Page tab bar - title comes from lib/page-registry.ts */}
       <div className="flex items-stretch flex-1 min-w-0 h-full">
         {/* Active tab */}
         <div className="flex items-center gap-2 px-3 bg-white border-x border-gray-200 max-w-[200px] group mb-[-1px] pb-[1px]">

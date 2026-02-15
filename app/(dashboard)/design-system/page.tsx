@@ -74,6 +74,7 @@ import {
 } from '@/components/kit/data-table';
 import { VacancyCard } from '@/components/kit/vacancy-card';
 import { CandidateCard } from '@/components/kit/candidate-card';
+import { HeaderActionButton } from '@/components/kit/header-action-button';
 
 // Icons
 import {
@@ -89,6 +90,10 @@ import {
   Trash2,
   Sparkles,
   HelpCircle,
+  Settings,
+  Plus,
+  GitBranch,
+  Download,
 } from 'lucide-react';
 
 // DND Kit for Timeline
@@ -146,6 +151,7 @@ const navSections: NavSection[] = [
       { id: 'candidate-card', title: 'CandidateCard' },
       { id: 'chat', title: 'Chat Components' },
       { id: 'data-table', title: 'DataTable' },
+      { id: 'header-action-button', title: 'HeaderActionButton' },
     ],
   },
   {
@@ -1082,6 +1088,57 @@ export default function DesignSystemPage() {
                     <DataTableEmpty description="No data found" />
                   )}
                 </DataTable>
+              </ComponentExample>
+            </div>
+
+            {/* HeaderActionButton */}
+            <div id="header-action-button" className="scroll-mt-20">
+              <ComponentExample
+                name="HeaderActionButton"
+                description="Standardized button for page header actions with consistent size and spacing"
+                importPath="@/components/kit/header-action-button"
+                filePath="/components/kit/header-action-button/header-action-button.tsx"
+              >
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">Outline variant (default)</div>
+                    <div className="flex flex-wrap gap-3">
+                      <HeaderActionButton icon={Settings}>
+                        Instellingen
+                      </HeaderActionButton>
+                      <HeaderActionButton icon={GitBranch}>
+                        Graph
+                      </HeaderActionButton>
+                      <HeaderActionButton icon={Download}>
+                        Export
+                      </HeaderActionButton>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">Primary variant</div>
+                    <div className="flex flex-wrap gap-3">
+                      <HeaderActionButton icon={Plus} variant="primary">
+                        Nieuw
+                      </HeaderActionButton>
+                      <HeaderActionButton icon={Plus} variant="primary">
+                        Toevoegen
+                      </HeaderActionButton>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium text-gray-700 mb-2">Combined (typical header pattern)</div>
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                      <HeaderActionButton icon={GitBranch}>
+                        Graph
+                      </HeaderActionButton>
+                      <HeaderActionButton icon={Plus} variant="primary">
+                        Nieuw
+                      </HeaderActionButton>
+                    </div>
+                  </div>
+                </div>
               </ComponentExample>
             </div>
           </ShowcaseSection>

@@ -5,22 +5,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
+  Activity,
   ChevronDown,
   ChevronRight,
   Inbox,
-  Briefcase,
-  Phone,
   Settings,
-  Search,
-  MoreHorizontal,
   SlidersHorizontal,
-  Smartphone,
-  Users,
-  UserPlus,
   FileCheck,
   ScanSearch,
   LayoutList,
-  Activity,
+  LogOut,
+  User,
+  Check,
+  Phone,
 } from 'lucide-react';
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 
@@ -36,9 +33,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
 import {
   Collapsible,
@@ -49,10 +43,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { getPreScreeningVacancies, getPreOnboardingVacancies } from '@/lib/interview-api';
+import { getNavigationCounts } from '@/lib/interview-api';
+import { useAuth } from '@/contexts/auth-context';
 
 // Navigation data
 const mainNavItems = [
@@ -76,8 +72,27 @@ const footerNavItems = [
   { name: 'Admin', href: '/admin', icon: Settings }
 ];
 
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(part => part[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function getRoleBadge(role: 'owner' | 'admin' | 'member'): string {
+  const labels: Record<string, string> = {
+    owner: 'Eigenaar',
+    admin: 'Admin',
+    member: 'Lid',
+  };
+  return labels[role] || role;
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user, workspaces, currentWorkspace, switchWorkspace, logout } = useAuth();
   const [assistentenOpen, setAssistentenOpen] = React.useState(true);
   const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
   const [preonboardingCount, setPreonboardingCount] = React.useState<number | null>(null);
@@ -85,14 +100,11 @@ export function AppSidebar() {
   React.useEffect(() => {
     let cancelled = false;
 
-    Promise.all([
-      getPreScreeningVacancies('new'),
-      getPreOnboardingVacancies('new'),
-    ])
-      .then(([prescreeningData, preonboardingData]) => {
+    getNavigationCounts()
+      .then((counts) => {
         if (cancelled) return;
-        setPrescreeningCount(prescreeningData.total);
-        setPreonboardingCount(preonboardingData.total);
+        setPrescreeningCount(counts.prescreening.new);
+        setPreonboardingCount(counts.preonboarding.new);
       })
       .catch(() => {
         if (!cancelled) {
@@ -120,6 +132,9 @@ export function AppSidebar() {
     return undefined;
   };
 
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <Sidebar className="border-r-0">
@@ -128,29 +143,59 @@ export function AppSidebar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-3 w-full hover:bg-sidebar-accent rounded-lg p-2 -m-2 transition-colors">
-              <Image
-                src="/taloo-icon-big.svg"
-                alt="ITZU"
-                width={40}
-                height={40}
-                className="w-10 h-10 rounded-lg object-contain"
-              />
+              {currentWorkspace?.logo_url ? (
+                <Image
+                  src={currentWorkspace.logo_url}
+                  alt={currentWorkspace.name}
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 rounded-lg object-contain"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-white text-sm font-semibold">
+                  {currentWorkspace?.name ? getInitials(currentWorkspace.name) : 'T'}
+                </div>
+              )}
               <div className="flex-1 text-left">
                 <p className="text-sm font-semibold text-sidebar-foreground">
-                  Taloo
+                  {currentWorkspace?.name || 'Taloo'}
                 </p>
-                <p className="text-xs text-sidebar-foreground/60">Enterprise</p>
+                <p className="text-xs text-sidebar-foreground/60">
+                  {currentWorkspace ? getRoleBadge(currentWorkspace.role) : 'Enterprise'}
+                </p>
               </div>
               <ChevronDown className="h-4 w-4 text-sidebar-foreground/60" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem>
-              <span>ITZU</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <span>Switch workspace...</span>
-            </DropdownMenuItem>
+          <DropdownMenuContent align="start" className="w-64">
+            {workspaces.map((workspace) => (
+              <DropdownMenuItem
+                key={workspace.id}
+                onClick={() => switchWorkspace(workspace.id)}
+                className="flex items-center gap-3 py-2"
+              >
+                {workspace.logo_url ? (
+                  <Image
+                    src={workspace.logo_url}
+                    alt={workspace.name}
+                    width={32}
+                    height={32}
+                    className="w-8 h-8 rounded-lg object-contain"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-xs font-medium text-white">
+                    {getInitials(workspace.name)}
+                  </div>
+                )}
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{workspace.name}</p>
+                  <p className="text-xs text-gray-500">{getRoleBadge(workspace.role)}</p>
+                </div>
+                {workspace.id === currentWorkspace?.id && (
+                  <Check className="h-4 w-4 text-green-600" />
+                )}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarHeader>
@@ -250,22 +295,38 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-auto py-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src="/dummy-profile-ld.png" alt="Laurijn" />
-                    <AvatarFallback>L</AvatarFallback>
+                    <AvatarImage
+                      src={user?.avatar_url || undefined}
+                      alt={user?.full_name || 'User'}
+                    />
+                    <AvatarFallback>
+                      {user?.full_name ? getInitials(user.full_name) : 'U'}
+                    </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-medium">Laurijn</p>
-                    <p className="text-xs text-sidebar-foreground/60">
-                      laurijn@taloo.be
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {user?.full_name || 'Gebruiker'}
+                    </p>
+                    <p className="text-xs text-sidebar-foreground/60 truncate">
+                      {user?.email || ''}
                     </p>
                   </div>
-                  <MoreHorizontal className="h-4 w-4 text-sidebar-foreground/60" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuItem>Log out</DropdownMenuItem>
+                <DropdownMenuItem>
+                  <User className="h-4 w-4 mr-2" />
+                  Profiel
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Instellingen
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Uitloggen
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>

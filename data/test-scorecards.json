@@ -1,0 +1,37 @@
+[
+  {
+    "id": "sc_1771151422473",
+    "name": "sqdqsdq",
+    "date": "2026-02-15",
+    "completionStatus": "yes",
+    "questionsUnderstanding": "qsdqs",
+    "agentResponse": "qsdqd",
+    "stuckOrConfused": "qsdq",
+    "liked": "qsd",
+    "couldBeBetter": "qsdqsd",
+    "score": "5",
+    "submittedAt": "2026-02-15T10:30:21.269Z"
+  },
+  {
+    "id": "sc_1771151780745",
+    "name": "Laurijn",
+    "date": "2026-02-15",
+    "completionStatus": "yes",
+    "questionsUnderstanding": {
+      "rating": "1",
+      "remarks": "Remark 1"
+    },
+    "agentResponse": {
+      "rating": "2",
+      "remarks": "Remark 2"
+    },
+    "stuckOrConfused": {
+      "rating": "3",
+      "remarks": "Remark 3"
+    },
+    "liked": "qsdqs",
+    "couldBeBetter": "qsdqs",
+    "score": "5",
+    "submittedAt": "2026-02-15T10:36:20.606Z"
+  }
+]

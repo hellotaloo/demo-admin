@@ -30,6 +30,8 @@ interface TriggerInterviewDialogProps {
   hasWhatsApp: boolean;
   hasVoice: boolean;
   hasCv: boolean;
+  /** Whether this is a test screening. Defaults to true. */
+  isTest?: boolean;
 }
 
 // Random Dutch names for testing
@@ -62,6 +64,7 @@ export function TriggerInterviewDialog({
   hasWhatsApp,
   hasVoice,
   hasCv,
+  isTest = true,
 }: TriggerInterviewDialogProps) {
   // CV section fields
   const [firstName, setFirstName] = useState('');
@@ -186,7 +189,7 @@ export function TriggerInterviewDialog({
         phone_number: formattedPhone,
         first_name: phoneFirstName || undefined,
         last_name: phoneLastName || undefined,
-        is_test: true,
+        is_test: isTest,
       });
       
       if (result.success) {

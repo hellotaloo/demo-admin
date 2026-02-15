@@ -549,6 +549,37 @@ export async function getPreOnboardingVacancies(
 }
 
 // =============================================================================
+// Navigation Counts API
+// =============================================================================
+
+export interface NavigationCounts {
+  prescreening: {
+    new: number;
+    generated: number;
+    archived: number;
+  };
+  preonboarding: {
+    new: number;
+    generated: number;
+    archived: number;
+  };
+}
+
+/**
+ * Fetch lightweight navigation counts for sidebar badges.
+ * Single request instead of fetching full vacancy lists.
+ */
+export async function getNavigationCounts(): Promise<NavigationCounts> {
+  const response = await fetch(`${BACKEND_URL}/agents/counts`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch navigation counts: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+// =============================================================================
 // Applications API
 // =============================================================================
 

@@ -1079,8 +1079,18 @@ export default function EditPreScreeningPage({ params }: PageProps) {
     );
   }
 
+  // Check if we're in production mode (is_test=false)
+  const isTestMode = searchParams.get('is_test') !== 'false';
+
   return (
     <div className="flex flex-col h-[calc(100vh-40px)] -m-6">
+      {/* Production mode warning banner */}
+      {!isTestMode && (
+        <div className="h-10 bg-red-600 text-white flex items-center justify-center gap-2 text-sm font-medium shrink-0">
+          <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse" />
+          PRODUCTIE MODUS — Sollicitaties zijn echt en worden niet als test gemarkeerd
+        </div>
+      )}
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-3">
           <button
@@ -1408,6 +1418,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
         hasWhatsApp={whatsappEnabled}
         hasVoice={voiceEnabled}
         hasCv={cvEnabled}
+        isTest={isTestMode}
       />
 
       {/* Unsaved Changes Confirmation Dialog */}

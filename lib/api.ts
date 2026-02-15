@@ -23,6 +23,53 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 // Simulate network delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * Get auth headers for API requests.
+ * Includes Authorization and X-Workspace-ID headers if available.
+ */
+export function getAuthHeaders(): HeadersInit {
+  if (typeof window === 'undefined') {
+    return { 'Content-Type': 'application/json' };
+  }
+
+  const token = localStorage.getItem('access_token');
+  const workspaceId = localStorage.getItem('workspace_id');
+
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...(workspaceId && { 'X-Workspace-ID': workspaceId }),
+  };
+}
+
+/**
+ * Authenticated fetch wrapper.
+ * Automatically adds auth headers and handles 401 responses.
+ */
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const headers = {
+    ...getAuthHeaders(),
+    ...options.headers,
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  // Handle 401 - redirect to login
+  if (response.status === 401 && typeof window !== 'undefined') {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('workspace_id');
+    localStorage.removeItem('user');
+    localStorage.removeItem('workspaces');
+    window.location.href = '/login';
+  }
+
+  return response;
+}
+
 // Vacancies API
 export async function getVacancies(): Promise<Vacancy[]> {
   const response = await fetch(`${API_BASE}/vacancies`);
@@ -258,7 +305,7 @@ export async function getVacancyDetail(vacancyId: string): Promise<APIVacancyDet
   };
 }
 
-// Activities API
+// Monitoring API (event log - formerly /activities)
 export interface GetActivitiesParams {
   actor_type?: ActivityActorType;
   event_type?: string[];
@@ -279,11 +326,58 @@ export async function getActivities(params: GetActivitiesParams = {}): Promise<G
   if (params.offset) searchParams.set('offset', params.offset.toString());
 
   const queryString = searchParams.toString();
-  const url = `${BACKEND_URL}/activities${queryString ? `?${queryString}` : ''}`;
+  const url = `${BACKEND_URL}/monitoring${queryString ? `?${queryString}` : ''}`;
 
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error('Failed to fetch activities');
+  }
+
+  return response.json();
+}
+
+// Activity Tasks API (workflow task monitoring)
+export interface TaskRow {
+  id: string;
+  candidate_name: string | null;
+  vacancy_title: string | null;
+  workflow_type: string;
+  workflow_type_label: string;
+  current_step: string;
+  current_step_label: string;
+  status: string;
+  is_stuck: boolean;
+  updated_at: string;
+  time_ago: string;
+}
+
+export interface TasksResponse {
+  tasks: TaskRow[];
+  total: number;
+  stuck_count: number;
+}
+
+export interface GetActivityTasksParams {
+  status?: 'active' | 'completed' | 'all';
+  stuck_only?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export async function getActivityTasks(params: GetActivityTasksParams = {}): Promise<TasksResponse> {
+  const searchParams = new URLSearchParams();
+
+  if (params.status) searchParams.set('status', params.status);
+  if (params.stuck_only) searchParams.set('stuck_only', 'true');
+  if (params.limit) searchParams.set('limit', params.limit.toString());
+  if (params.offset) searchParams.set('offset', params.offset.toString());
+
+  const queryString = searchParams.toString();
+  const url = `${BACKEND_URL}/api/activities/tasks${queryString ? `?${queryString}` : ''}`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('Failed to fetch activity tasks');
   }
 
   return response.json();

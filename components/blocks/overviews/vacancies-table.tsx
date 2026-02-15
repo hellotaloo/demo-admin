@@ -68,16 +68,16 @@ const statusLabels: Partial<Record<VacancyStatus, string>> = {
 const statusStyles: Partial<Record<VacancyStatus, { bg: string; text: string; dot: string }>> = {
   // New API statuses
   concept: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
-  open: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
-  on_hold: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
-  filled: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500' },
+  open: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
+  on_hold: { bg: 'bg-white border border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' },
+  filled: { bg: 'bg-white border border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
   closed: { bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
   // Legacy statuses (mapped to appropriate styles)
   new: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
   draft: { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-400' },
-  in_progress: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
-  agent_created: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
-  screening_active: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-500' },
+  in_progress: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
+  agent_created: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
+  screening_active: { bg: 'bg-white border border-green-200', text: 'text-green-700', dot: 'bg-green-500' },
   archived: { bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
 };
 

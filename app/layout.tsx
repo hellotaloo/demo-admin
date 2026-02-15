@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Hedvig_Letters_Serif } from "next/font/google";
 import { Theme } from "@radix-ui/themes";
 import { Toaster } from "sonner";
+import { AuthProvider } from "@/contexts/auth-context";
 import "./globals.css";
 
 const inter = Inter({
@@ -36,10 +37,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${hedvigLetters.variable} antialiased`}>
-        <Theme accentColor="blue" grayColor="slate" radius="medium" scaling="100%">
-          {children}
-          <Toaster position="bottom-right" richColors />
-        </Theme>
+        <AuthProvider>
+          <Theme accentColor="blue" grayColor="slate" radius="medium" scaling="100%">
+            {children}
+            <Toaster position="bottom-right" richColors />
+          </Theme>
+        </AuthProvider>
       </body>
     </html>
   );
