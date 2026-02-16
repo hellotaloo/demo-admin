@@ -690,8 +690,6 @@ export default function GeneratePreScreeningPage({ params }: PageProps) {
             highlightedIds={highlightedIds}
             onQuestionClick={handleQuestionClick}
             onReorder={handleReorder}
-            onQuestionHover={handleQuestionHover}
-            onQuestionHoverEnd={handleQuestionHoverEnd}
           />
         </div>
       </PageLayoutContent>
