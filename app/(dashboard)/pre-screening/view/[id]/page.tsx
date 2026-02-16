@@ -4,7 +4,7 @@ import { use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 // This page now redirects to the unified edit page with dashboard mode
-// All functionality is consolidated in /pre-screening/edit/[id]
+// All functionality is consolidated in /pre-screening/detail/[id]
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -16,7 +16,7 @@ export default function ViewPreScreeningPage({ params }: PageProps) {
 
   useEffect(() => {
     // Redirect to the unified page with dashboard mode
-    router.replace(`/pre-screening/edit/${id}?mode=dashboard`);
+    router.replace(`/pre-screening/detail/${id}?mode=dashboard`);
   }, [id, router]);
 
   return null;

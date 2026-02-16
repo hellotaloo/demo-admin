@@ -5,21 +5,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
-  Activity,
   ChevronDown,
   ChevronRight,
-  Inbox,
   Settings,
   SlidersHorizontal,
   FileCheck,
-  ScanSearch,
   LayoutList,
   LogOut,
   User,
   Check,
   Phone,
+  AlertCircle,
 } from 'lucide-react';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, BoltIcon } from '@heroicons/react/24/outline';
 
 import {
   Sidebar,
@@ -51,20 +49,15 @@ import { getNavigationCounts } from '@/lib/interview-api';
 import { useAuth } from '@/contexts/auth-context';
 
 // Navigation data
-const mainNavItems = [
-  { name: 'Nieuw gesprek', href: '/', icon: PencilSquareIcon },
-];
-
 const primaryNavItems = [
-  { name: 'Inbox', href: '/inbox', icon: Inbox },
+  { name: 'Nieuwe chat', href: '/', icon: PencilSquareIcon },
   { name: 'Overzichten', href: '/overviews', icon: LayoutList },
-  { name: 'Activiteiten', href: '/activities', icon: Activity },
+  { name: 'Agent activiteiten', href: '/activities', icon: BoltIcon },
 ];
 
-const assistentenItems = [
+const agentItems = [
   { name: 'Pre-screening', href: '/pre-screening', icon: Phone, badgeKey: 'prescreening' as const },
   { name: 'Pre-onboarding', href: '/pre-onboarding', icon: FileCheck, badgeKey: 'preonboarding' as const },
-  { name: 'Pattern Finder', href: '/insights', icon: ScanSearch },
 ];
 
 const footerNavItems = [
@@ -93,9 +86,11 @@ function getRoleBadge(role: 'owner' | 'admin' | 'member'): string {
 export function AppSidebar() {
   const pathname = usePathname();
   const { user, workspaces, currentWorkspace, switchWorkspace, logout } = useAuth();
-  const [assistentenOpen, setAssistentenOpen] = React.useState(true);
+  const [agentsOpen, setAgentsOpen] = React.useState(true);
   const [prescreeningCount, setPrescreeningCount] = React.useState<number | null>(null);
   const [preonboardingCount, setPreonboardingCount] = React.useState<number | null>(null);
+  const [activitiesCount, setActivitiesCount] = React.useState<number | null>(null);
+  const [hasStuckActivities, setHasStuckActivities] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -105,11 +100,17 @@ export function AppSidebar() {
         if (cancelled) return;
         setPrescreeningCount(counts.prescreening.new);
         setPreonboardingCount(counts.preonboarding.new);
+        if (counts.activities) {
+          setActivitiesCount(counts.activities.active);
+          setHasStuckActivities(counts.activities.stuck > 0);
+        }
       })
       .catch(() => {
         if (!cancelled) {
           setPrescreeningCount(null);
           setPreonboardingCount(null);
+          setActivitiesCount(null);
+          setHasStuckActivities(false);
         }
       });
 
@@ -120,7 +121,7 @@ export function AppSidebar() {
     return pathname === href || (href !== '/' && pathname.startsWith(href));
   };
 
-  const getAssistentBadge = (item: (typeof assistentenItems)[number]): React.ReactNode => {
+  const getAgentBadge = (item: (typeof agentItems)[number]): React.ReactNode => {
     if (!('badgeKey' in item)) return undefined;
 
     if (item.badgeKey === 'prescreening' && prescreeningCount !== null && prescreeningCount > 0) {
@@ -201,56 +202,52 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* New Conversation Button */}
+        {/* Primary Navigation */}
         <SidebarGroup className="py-0 mt-6">
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNavItems.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span className="text-sm">{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {primaryNavItems.map((item) => {
+                const isActivities = item.href === '/activities';
+                const showActivitiesCount = isActivities && activitiesCount !== null && activitiesCount > 0;
+                const showStuckWarning = isActivities && hasStuckActivities;
+
+                return (
+                  <SidebarMenuItem key={item.name}>
+                    <SidebarMenuButton asChild isActive={isActive(item.href)}>
+                      <Link href={item.href}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    {(showActivitiesCount || showStuckWarning) && (
+                      <SidebarMenuBadge className="flex items-center gap-1">
+                        {showActivitiesCount && activitiesCount}
+                        {showStuckWarning && (
+                          <AlertCircle className="h-3 w-3 text-orange-500" />
+                        )}
+                      </SidebarMenuBadge>
+                    )}
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Primary Navigation */}
-        <SidebarGroup className="py-0">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {primaryNavItems.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild isActive={isActive(item.href)}>
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4" />
-                      <span className="text-sm">{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Assistenten Section */}
-        <Collapsible open={assistentenOpen} onOpenChange={setAssistentenOpen}>
+        {/* Agents Section */}
+        <Collapsible open={agentsOpen} onOpenChange={setAgentsOpen}>
           <SidebarGroup className="py-0 mt-6">
             <SidebarGroupLabel asChild>
               <CollapsibleTrigger className="flex items-center gap-2 w-full group/label">
-                <span>Assistenten</span>
+                <span>Agents</span>
                 <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/label:rotate-90" />
               </CollapsibleTrigger>
             </SidebarGroupLabel>
             <CollapsibleContent>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {assistentenItems.map((item) => {
-                    const badge = getAssistentBadge(item);
+                  {agentItems.map((item) => {
+                    const badge = getAgentBadge(item);
                     return (
                       <SidebarMenuItem key={item.name}>
                         <SidebarMenuButton asChild isActive={isActive(item.href)}>

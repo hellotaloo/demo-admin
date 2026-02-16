@@ -1,28 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run dev:*)",
-      "Bash(pkill:*)",
-      "Bash(curl:*)",
-      "Bash(grep:*)",
-      "Bash(python3:*)",
-      "Bash(npx tsc:*)",
-      "Bash(wc -l:*)",
-      "Bash(npm run build:*)",
-      "Bash(xargs:*)",
-      "Bash(npm install:*)",
-      "Bash(npm uninstall:*)",
-      "Bash(npx next build:*)",
-      "Bash(git checkout:*)",
-      "Bash(git pull:*)",
-      "Bash(git merge:*)",
-      "Bash(git push:*)",
-      "Bash(git stash push:*)",
-      "Bash(git stash:*)",
-      "Bash(ls:*)",
-      "Bash(git fetch:*)",
-      "Bash(npm run lint:*)",
-      "Bash(find:*)"
+      "Bash(*)"
     ]
   }
 }

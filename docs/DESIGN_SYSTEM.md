@@ -184,24 +184,43 @@ import {
 </PageLayoutHeader>
 ```
 
-### Breadcrumbs Pattern
+### Breadcrumb Component
+
+Use `Breadcrumb` for hierarchical navigation in nested pages.
+
 ```tsx
-<div className="flex items-center gap-3">
-  <button onClick={goBack} className="...back-button-styles...">
-    <ArrowLeft className="w-5 h-5" />
-  </button>
-  <div className="flex items-center gap-2 text-lg">
-    <button
-      onClick={() => router.push('/parent')}
-      className="text-gray-400 hover:text-gray-600 transition-colors"
-    >
-      Parent Section
-    </button>
-    <ChevronRight className="w-4 h-4 text-gray-300" />
-    <h1 className="font-semibold text-gray-900">Current Page</h1>
-  </div>
-</div>
+import { Breadcrumb } from '@/components/kit/breadcrumb';
+
+// Standard breadcrumb with back arrow
+<Breadcrumb
+  showBackArrow
+  items={[
+    { label: 'Job Functions', href: '/admin/ontology/job-functions' },
+    { label: 'Chauffeur CE' },  // Last item = current page (no href)
+  ]}
+/>
+
+// With custom back URL
+<Breadcrumb
+  showBackArrow="/dashboard"
+  items={[
+    { label: 'Settings', href: '/settings' },
+    { label: 'Voice Configuration' },
+  ]}
+/>
 ```
+
+**When to Use Breadcrumbs:**
+| Page Type | Header Style |
+|-----------|--------------|
+| Top-level (Overview, Admin) | Title only |
+| Detail from table (Vacancy, Application) | Back arrow + Title |
+| Nested admin/settings (Job Function detail) | Back arrow + Breadcrumbs |
+
+**Rules:**
+- Don't include root sections (e.g., "Admin") — visible in sidebar
+- Last item = current page (not clickable, styled as `<h1>`)
+- Back arrow and breadcrumb links can coexist
 
 ---
 

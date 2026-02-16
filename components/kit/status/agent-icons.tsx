@@ -49,7 +49,7 @@ export function AgentIcons({ agents, vacancyId, className }: AgentIconsProps) {
     <div className={cn('flex items-center gap-1.5', className)}>
       {prescreeningVariant && (
         vacancyId ? (
-          <Link href={`/pre-screening/edit/${vacancyId}`} className="hover:brightness-90 transition-all">
+          <Link href={`/pre-screening/detail/${vacancyId}`} className="hover:brightness-90 transition-all">
             <TagBadge label="Pre-screening" variant={prescreeningVariant} icon={Phone} />
           </Link>
         ) : (
@@ -58,7 +58,7 @@ export function AgentIcons({ agents, vacancyId, className }: AgentIconsProps) {
       )}
       {preonboardingVariant && (
         vacancyId ? (
-          <Link href={`/pre-onboarding/edit/${vacancyId}`} className="hover:brightness-90 transition-all">
+          <Link href={`/pre-onboarding/detail/${vacancyId}`} className="hover:brightness-90 transition-all">
             <TagBadge label="Pre-onboarding" variant={preonboardingVariant} icon={FileCheck} />
           </Link>
         ) : (

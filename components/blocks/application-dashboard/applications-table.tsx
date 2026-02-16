@@ -247,7 +247,7 @@ function ScoreDisplayInline({
       <div className="flex items-center gap-1">
         <span className="text-gray-400">Open vragen:</span>
         <span className={hasOpenQuestionAnswers ? scoreColorClass : 'text-gray-400'}>
-          {hasOpenQuestionAnswers && openQuestionsScore !== undefined ? `${openQuestionsScore}/100` : '—'}
+          {hasOpenQuestionAnswers && openQuestionsScore !== undefined ? `${openQuestionsScore}%` : '—'}
         </span>
       </div>
     </div>

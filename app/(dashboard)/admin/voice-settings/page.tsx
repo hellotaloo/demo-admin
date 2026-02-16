@@ -37,59 +37,55 @@ const ELEVENLABS_VOICE_ID_LUC = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID_LUC 
 // Voice options with ElevenLabs voice IDs
 const VOICE_OPTIONS: VoiceOption[] = [
   {
-    id: 'emma',
-    name: 'Emma',
-    description: 'Warm and professional',
-    gender: 'female',
-    voiceId: ELEVENLABS_VOICE_ID_GEERT,
-    avatar: '/avatars/large/emma.png',
-  },
-  {
     id: 'bob',
     name: 'Bob',
-    description: 'Confident and clear',
+    description: 'Zelfverzekerd en helder',
     gender: 'male',
-    voiceId: ELEVENLABS_VOICE_ID_GEERT,
-    avatar: '/avatars/large/bob.png',
+    voiceId: "s7Z6uboUuE4Nd8Q2nye6",
+    avatar: '/avatars/large/male_2.png',
+  },
+  {
+    id: 'emma',
+    name: 'Louise',
+    description: 'Warm en professioneel',
+    gender: 'female',
+    voiceId: 'v3V1d2rk6528UrLKRuy8',
+    avatar: '/avatars/large/female_6.png',
   },
   {
     id: 'luc',
     name: 'Luc',
-    description: 'Energetic and friendly',
+    description: 'Energiek en vriendelijk',
     gender: 'male',
-    voiceId: ELEVENLABS_VOICE_ID_LUC,
-    avatar: '/avatars/large/luc.png',
-  },
+    voiceId: "IPgYtHTNLjC7Bq7IPHrm",
+    avatar: '/avatars/large/male_1.png',
+  }
 ];
 
 // Voice engine options (ElevenLabs model IDs)
 const VOICE_ENGINES = [
   {
+    id: 'eleven_turbo_v2_5',
+    name: 'Gebalanceerd',
+    description: 'Gebalanceerde kwaliteit en snelheid (32 talen)',
+  },
+  {
     id: 'eleven_v3_conversational',
-    name: 'Natural Expression',
-    description: 'Most expressive, context-aware (70+ languages)',
+    name: 'Natuurlijke expressie',
+    description: 'Meest expressief, contextbewust (70+ talen)',
     badge: 'Alpha',
+    bobOnly: true,
   },
   {
     id: 'eleven_flash_v2_5',
     name: 'F1',
-    description: 'Ultra-low latency ~75ms (32 languages)',
-    badge: 'Fastest',
-  },
-  {
-    id: 'eleven_turbo_v2_5',
-    name: 'Swiss knife',
-    description: 'Balanced quality and speed (32 languages)',
-  },
-  {
-    id: 'eleven_multilingual_v2',
-    name: 'Polyglot',
-    description: 'High quality, rich emotional expression (29 languages)',
-  },
+    description: 'Ultra-lage latentie ~75ms (32 talen)',
+    badge: 'Snelste',
+  }
 ] as const;
 
 // Expression level labels
-const EXPRESSION_LABELS = ['Low', 'Medium', 'High', 'Extreme'] as const;
+const EXPRESSION_LABELS = ['Laag', 'Gemiddeld', 'Hoog', 'Extreem'] as const;
 
 // Convert expression level (0-3) to stability (1-0) - reversed mapping
 // Low expression (0) -> stability 1.0 (most stable)
@@ -193,7 +189,14 @@ export default function VoiceSettingsPage() {
     if (callState !== 'idle') {
       setCallState('idle');
     }
-  }, [callState]);
+    // Reset engine if switching away from Bob while using a bob-only engine
+    if (voiceId !== 'bob') {
+      const currentEngine = VOICE_ENGINES.find((e) => e.id === selectedEngine);
+      if (currentEngine && 'bobOnly' in currentEngine && currentEngine.bobOnly) {
+        setSelectedEngine('eleven_turbo_v2_5');
+      }
+    }
+  }, [callState, selectedEngine]);
 
   // Handle call me button - start ElevenLabs conversation
   const handleCallMe = useCallback(async () => {
@@ -287,7 +290,7 @@ export default function VoiceSettingsPage() {
       localStorage.setItem(`voice-option-${ELEVENLABS_AGENT_ID}`, selectedVoice);
 
       toast.success('Voice instellingen opgeslagen');
-      router.push('/admin');
+      router.refresh();
     } catch (error) {
       console.error('Failed to save voice config:', error);
       toast.error('Opslaan mislukt. Probeer opnieuw.');
@@ -324,7 +327,7 @@ export default function VoiceSettingsPage() {
             <IPhoneMockup size="compact">
               <VoiceCallMockup
                 callerName={selectedVoiceData?.name || 'Izzy'}
-                callerSubtitle="Voice Assistant"
+                callerSubtitle="Stem assistent"
                 callerAvatar={selectedVoiceData?.avatar}
                 callState={callState}
                 onStateChange={handleCallStateChange}
@@ -357,9 +360,9 @@ export default function VoiceSettingsPage() {
           {/* Voice Selection Section */}
           <section className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Select Voice</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Selecteer stem</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Choose a voice for your AI agent
+                Kies een stem voor je AI-agent
               </p>
             </div>
 
@@ -450,9 +453,9 @@ export default function VoiceSettingsPage() {
           {/* Voice Engine Section */}
           <section className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Voice Engine</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Stemmodel</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Select the voice model that best fits your needs
+                Selecteer het stemmodel dat het beste bij jouw behoeften past
               </p>
             </div>
 
@@ -461,7 +464,7 @@ export default function VoiceSettingsPage() {
               onValueChange={setSelectedEngine}
               className="space-y-3"
             >
-              {VOICE_ENGINES.map((engine) => (
+              {VOICE_ENGINES.filter((engine) => !('bobOnly' in engine && engine.bobOnly) || selectedVoice === 'bob').map((engine) => (
                 <div
                   key={engine.id}
                   className="flex items-start space-x-3 rounded-lg border border-gray-200 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
@@ -485,9 +488,9 @@ export default function VoiceSettingsPage() {
           {/* Expression Level Section */}
           <section className="space-y-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Expression Level</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Expressieniveau</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Adjust emotional expressiveness from stable to dynamic
+                Pas de emotionele expressiviteit aan van stabiel tot dynamisch
               </p>
             </div>
 
@@ -517,22 +520,22 @@ export default function VoiceSettingsPage() {
                 ))}
               </div>
               <p className="text-sm text-gray-500">
-                {expressionLevel === 0 && 'Low: Most stable and consistent voice output'}
-                {expressionLevel === 1 && 'Medium: Balanced expression with natural variation'}
-                {expressionLevel === 2 && 'High: More dynamic and emotionally responsive'}
-                {expressionLevel === 3 && 'Extreme: Maximum expressiveness (may be unpredictable)'}
+                {expressionLevel === 0 && 'Laag: Meest stabiele en consistente stemuitvoer'}
+                {expressionLevel === 1 && 'Gemiddeld: Gebalanceerde expressie met natuurlijke variatie'}
+                {expressionLevel === 2 && 'Hoog: Dynamischer en emotioneel responsiever'}
+                {expressionLevel === 3 && 'Extreem: Maximale expressiviteit (kan onvoorspelbaar zijn)'}
               </p>
             </div>
           </section>
 
           {/* Info Section */}
           <section className="rounded-xl bg-blue-50 border border-blue-100 p-5">
-            <h3 className="font-medium text-gray-900 mb-2">About Voice Agents</h3>
+            <h3 className="font-medium text-gray-900 mb-2">Over stem-agents</h3>
             <p className="text-sm text-gray-600">
-              Voice agents conduct phone interviews with candidates using natural language
-              processing. They can screen candidates, ask qualifying questions, and provide
-              a human-like conversation experience. The selected voice determines how the
-              agent sounds during calls.
+              Stem-agents voeren telefonische interviews met kandidaten uit met behulp van
+              natuurlijke taalverwerking. Ze kunnen kandidaten screenen, kwalificerende vragen
+              stellen en een menselijke gesprekservaring bieden. De geselecteerde stem bepaalt
+              hoe de agent klinkt tijdens gesprekken.
             </p>
           </section>
         </div>

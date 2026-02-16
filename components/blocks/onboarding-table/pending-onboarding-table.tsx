@@ -61,7 +61,7 @@ export function PendingOnboardingTable({ vacancies }: PendingOnboardingTableProp
             <TableCell className="text-right">
               <button
                 className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-                onClick={() => router.push(`/pre-onboarding/edit/${vacancy.id}`)}
+                onClick={() => router.push(`/pre-onboarding/detail/${vacancy.id}`)}
               >
                 Pre-onboarding genereren
                 <ArrowRight className="w-3 h-3" />

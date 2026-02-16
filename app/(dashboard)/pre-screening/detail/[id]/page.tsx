@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, ArrowLeft, CheckCircle, Pencil, Smartphone, RotateCcw, LayoutDashboard } from 'lucide-react';
+import { Loader2, ArrowLeft, Send, Pencil, Smartphone, RotateCcw, LayoutDashboard, CheckCircle } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { 
@@ -241,8 +241,15 @@ export default function EditPreScreeningPage({ params }: PageProps) {
             setCvEnabled(false);
           }
           
-          // Default to dashboard view when loading existing pre-screening
-          setViewMode('dashboard');
+          // Check URL mode parameter for initial view, default to dashboard
+          const modeParam = searchParams.get('mode');
+          if (modeParam === 'edit') {
+            setViewMode('edit');
+          } else if (modeParam === 'preview') {
+            setViewMode('preview');
+          } else {
+            setViewMode('dashboard');
+          }
         }
       } catch (err) {
         console.error('Failed to fetch vacancy:', err);
@@ -277,7 +284,13 @@ export default function EditPreScreeningPage({ params }: PageProps) {
   // Check for mode parameter (e.g., from navigation)
   useEffect(() => {
     const modeParam = searchParams.get('mode');
-    if (modeParam === 'preview' && isGenerated && questions.length > 0) {
+    if (modeParam === 'edit' && existingPreScreening) {
+      setViewMode('edit');
+      // Clear the URL param after consuming it
+      const url = new URL(window.location.href);
+      url.searchParams.delete('mode');
+      window.history.replaceState({}, '', url.toString());
+    } else if (modeParam === 'preview' && isGenerated && questions.length > 0) {
       setViewMode('preview');
       // Clear the URL param after consuming it
       const url = new URL(window.location.href);
@@ -1188,7 +1201,7 @@ export default function EditPreScreeningPage({ params }: PageProps) {
                   : 'bg-green-500 hover:bg-green-600 text-white'
               }`}
             >
-              <CheckCircle className="w-4 h-4" />
+              <Send className="w-4 h-4" />
               {isSaving ? 'Bezig...' : 'Publiceren'}
             </button>
           )}

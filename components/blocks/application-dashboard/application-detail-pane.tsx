@@ -220,7 +220,7 @@ function CompactScoreCard({ score, hasAnswers = true, pending = false }: { score
         <TrendingUp className={`w-3 h-3 ${colorClasses.icon}`} />
         <span className="text-[10px] font-medium opacity-75">Open vragen</span>
       </div>
-      <p className="text-xs font-semibold">{score}/100</p>
+      <p className="text-xs font-semibold">{score}%</p>
     </div>
   );
 }
@@ -300,7 +300,7 @@ function AnswerCard({ answer, showStatus = false }: AnswerCardProps) {
 
           {/* Show score for qualifying questions only when answered */}
           {showQualifyingMetrics && hasScore && (
-            <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}</span></span>
+            <span className="text-xs text-gray-500">Score: <span className="font-medium text-gray-700">{answer.score}%</span></span>
           )}
 
           {/* Show rating badge for qualification questions only when answered */}

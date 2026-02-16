@@ -1,15 +1,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { Building2, MapPin, ArrowRight, Zap, FileEdit, CheckCircle, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
+import { Building2, MapPin, ArrowRight, Zap, FileEdit, Send, ArrowUp, ArrowDown, ChevronsUpDown } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { toast } from 'sonner';
 import { Vacancy } from '@/lib/types';
 import { formatDateTime, cn } from '@/lib/utils';
-import { publishPreScreening } from '@/lib/interview-api';
-import { PublishDialog, PublishChannels } from '@/components/blocks/channel-management';
 import {
   Table,
   TableBody,
@@ -69,28 +65,8 @@ export interface ConceptVacanciesTableProps {
 export type PendingVacanciesTableProps = ConceptVacanciesTableProps;
 
 export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps) {
-  const router = useRouter();
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [publishingVacancy, setPublishingVacancy] = useState<Vacancy | null>(null);
-
-  const handlePublish = async (channels: PublishChannels) => {
-    if (!publishingVacancy) return;
-
-    try {
-      await publishPreScreening(publishingVacancy.id, {
-        enable_voice: channels.voice,
-        enable_whatsapp: channels.whatsapp,
-        enable_cv: channels.cv,
-      });
-
-      toast.success(`"${publishingVacancy.title}" is gepubliceerd!`);
-      router.push(`/pre-screening/edit/${publishingVacancy.id}?view=dashboard`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Publiceren mislukt. Probeer het opnieuw.');
-      throw error;
-    }
-  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -145,7 +121,6 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
   }
 
   return (
-    <>
     <Table>
       <TableHeader>
         <TableRow>
@@ -165,7 +140,7 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
             sortDirection={sortDirection}
             onSort={handleSort}
           />
-          <TableHead className="w-[280px]">Acties</TableHead>
+          <TableHead className="w-[280px] text-right">Acties</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -211,44 +186,32 @@ export function ConceptVacanciesTable({ vacancies }: ConceptVacanciesTableProps)
               <TableCell className="text-gray-500 text-sm whitespace-nowrap">
                 {formatDateTime(vacancy.createdAt)}
               </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
+              <TableCell className="text-right">
+                {isGenerated ? (
                   <Link
-                    href={`/pre-screening/edit/${vacancy.id}`}
-                    data-testid={`edit-prescreening-btn-${vacancy.id}`}
-                    className={cn(
-                      "inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors",
-                      isGenerated ? "flex-1" : "w-full"
-                    )}
+                    href={`/pre-screening/detail/${vacancy.id}?mode=edit`}
+                    data-testid={`publish-prescreening-btn-${vacancy.id}`}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
                   >
-                    {isGenerated ? 'Bewerken' : 'Pre-screening genereren'}
+                    <Send className="w-4 h-4" />
+                    Publiceren
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/pre-screening/detail/${vacancy.id}`}
+                    data-testid={`generate-prescreening-btn-${vacancy.id}`}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    Genereren
                     <ArrowRight className="w-4 h-4" />
                   </Link>
-                  {isGenerated && (
-                    <button
-                      type="button"
-                      data-testid={`publish-prescreening-btn-${vacancy.id}`}
-                      onClick={() => setPublishingVacancy(vacancy)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Publiceren
-                    </button>
-                  )}
-                </div>
+                )}
               </TableCell>
             </TableRow>
           );
         })}
       </TableBody>
     </Table>
-
-    <PublishDialog
-      open={!!publishingVacancy}
-      onOpenChange={(open) => !open && setPublishingVacancy(null)}
-      onPublish={handlePublish}
-    />
-  </>
   );
 }
 

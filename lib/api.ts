@@ -337,6 +337,12 @@ export async function getActivities(params: GetActivitiesParams = {}): Promise<G
 }
 
 // Activity Tasks API (workflow task monitoring)
+export interface WorkflowStep {
+  id: string;
+  label: string;
+  status: 'completed' | 'current' | 'pending' | 'failed';
+}
+
 export interface TaskRow {
   id: string;
   candidate_name: string | null;
@@ -345,10 +351,19 @@ export interface TaskRow {
   workflow_type_label: string;
   current_step: string;
   current_step_label: string;
+  step_detail: string | null;
   status: string;
   is_stuck: boolean;
   updated_at: string;
   time_ago: string;
+  workflow_steps: WorkflowStep[];
+  // SLA timing fields
+  timeout_at: string | null;
+  time_remaining: string | null;
+  time_remaining_seconds: number | null;
+  // Duration for completed workflows
+  duration: string | null;
+  duration_seconds: number | null;
 }
 
 export interface TasksResponse {
@@ -381,6 +396,47 @@ export async function getActivityTasks(params: GetActivityTasksParams = {}): Pro
   }
 
   return response.json();
+}
+
+// Complete a stuck task
+export interface CompleteTaskParams {
+  completed_by: string;
+  notes?: string;
+}
+
+export interface CompleteTaskResponse {
+  success: boolean;
+  task_id: string;
+  new_status: string;
+  new_step: string;
+  completed_by: string;
+  completed_at: string;
+  message: string;
+}
+
+export async function completeTask(taskId: string, params: CompleteTaskParams): Promise<CompleteTaskResponse> {
+  const response = await fetch(`${BACKEND_URL}/api/activities/tasks/${taskId}/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to complete task');
+  }
+
+  return response.json();
+}
+
+// Delete a task
+export async function deleteTask(taskId: string): Promise<void> {
+  const response = await fetch(`${BACKEND_URL}/api/activities/tasks/${taskId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete task');
+  }
 }
 
 // ElevenLabs Agent API

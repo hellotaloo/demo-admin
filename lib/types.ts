@@ -18,6 +18,10 @@ export type AgentStatus = 'online' | 'offline' | null;
 export interface AgentStatusInfo {
   exists: boolean;           // Agent is configured/generated
   status: AgentStatus;       // online, offline, or null if doesn't exist
+  total_screenings?: number; // Total screenings/tasks completed
+  qualified_count?: number;  // Number of qualified candidates
+  qualification_rate?: number; // Percentage (0-100)
+  last_activity_at?: string; // Last activity timestamp
 }
 
 export interface VacancyAgents {
@@ -707,6 +711,7 @@ export interface APIVacanciesResponse {
 export interface APIActivityResponse {
   id: string;
   candidate_id?: string;
+  candidate_name?: string;  // Name of the candidate (for vacancy timelines)
   application_id?: string;
   vacancy_id?: string;
   event_type: string;  // screening_started, qualified, disqualified, interview_scheduled, etc.
@@ -718,8 +723,22 @@ export interface APIActivityResponse {
   created_at: string;
 }
 
+// Applicant summary (lightweight candidate info for vacancy detail)
+export interface APIApplicantSummary {
+  id: string;
+  name: string;
+  phone?: string;
+  channel: 'voice' | 'whatsapp' | 'cv';
+  status: 'active' | 'processing' | 'completed';
+  qualified: boolean;
+  score?: number;        // Average qualification score (0-100)
+  started_at: string;
+  completed_at?: string;
+}
+
 export interface APIVacancyDetail extends APIVacancyListItem {
   timeline: APIActivityResponse[];
+  applicants?: APIApplicantSummary[];  // Candidates who did pre-screening
 }
 
 // =============================================================================

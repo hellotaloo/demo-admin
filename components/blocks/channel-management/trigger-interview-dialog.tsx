@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
-import { FileText, MessageCircle, Phone, X, Upload, Loader2, CheckCircle2, Calendar, Check } from 'lucide-react';
+import { FileText, MessageCircle, Phone, Smartphone, X, Upload, Loader2, CheckCircle2, Calendar, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   initiateOutboundScreening,
@@ -437,7 +437,7 @@ export function TriggerInterviewDialog({
             ) : (
               <VisuallyHidden.Root>
                 <AlertDialogTitle>
-                  {hasCv ? 'Solliciteer met CV' : hasWhatsApp ? 'Solliciteer via WhatsApp' : 'Solliciteer via telefoon'}
+                  {hasCv ? 'Solliciteer met CV' : hasWhatsApp ? 'Solliciteer via WhatsApp' : 'Solliciteer via gsm'}
                 </AlertDialogTitle>
               </VisuallyHidden.Root>
             )}
@@ -525,14 +525,14 @@ export function TriggerInterviewDialog({
                 {hasWhatsApp && !hasVoice ? (
                   <MessageCircle className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
                 ) : (
-                  <Phone className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
+                  <Smartphone className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
                 )}
                 <h3 className="text-lg font-semibold text-gray-900">
-                  {hasWhatsApp && !hasVoice 
-                    ? 'Solliciteer via WhatsApp' 
-                    : hasVoice && !hasWhatsApp 
-                      ? 'Solliciteer via telefoon'
-                      : 'Solliciteer via telefoon'}
+                  {hasWhatsApp && !hasVoice
+                    ? 'Solliciteer via WhatsApp'
+                    : hasVoice && !hasWhatsApp
+                      ? 'Solliciteer via gsm'
+                      : 'Solliciteer via gsm'}
                 </h3>
               </div>
               <p className="text-sm text-gray-600 mb-4 grow">

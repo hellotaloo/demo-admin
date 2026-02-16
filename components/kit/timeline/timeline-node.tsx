@@ -21,14 +21,14 @@ export function TimelineNode({
 
   const dotColorClasses = {
     default: 'bg-white border-gray-300',
-    green: 'bg-green-100 border-green-500',
-    orange: 'bg-orange-100 border-orange-400',
+    green: 'bg-green-500 border-green-500',
+    orange: 'bg-orange-500 border-orange-500',
   };
 
   const innerDotColorClasses = {
     default: 'bg-gray-400',
-    green: 'bg-green-500',
-    orange: 'bg-orange-400',
+    green: 'bg-white',
+    orange: 'bg-white',
   };
 
   return (

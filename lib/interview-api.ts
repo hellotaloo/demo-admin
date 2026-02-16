@@ -282,7 +282,7 @@ export async function sendFeedback(
 // Vacancy API
 // =============================================================================
 
-import { Vacancy, Application, ApplicationAnswer } from './types';
+import { Vacancy, Application, ApplicationAnswer, AnswerRating } from './types';
 
 // Backend response types (snake_case)
 interface BackendRecruiterSummary {
@@ -568,6 +568,10 @@ export interface NavigationCounts {
     generated: number;
     archived: number;
   };
+  activities?: {
+    active: number;
+    stuck: number;
+  };
 }
 
 /**
@@ -596,7 +600,7 @@ interface BackendQuestionAnswer {
   answer: string;
   passed: boolean | null;
   score?: number;
-  rating?: 'excellent' | 'good' | 'average' | 'poor';
+  rating?: AnswerRating;
   motivation?: string;
 }
 

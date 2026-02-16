@@ -38,7 +38,7 @@ import {
   SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
-import { PencilSquareIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, BoltIcon } from '@heroicons/react/24/outline';
 
 export type PageConfig = {
   title: string;
@@ -54,7 +54,7 @@ export const pageConfigs: Record<string, PageConfig> = {
   '/': { title: 'Nieuw gesprek', icon: PencilSquareIcon },
   '/inbox': { title: 'Inbox', icon: Inbox },
   '/overviews': { title: 'Overzichten', icon: LayoutList },
-  '/activities': { title: 'Activiteiten', icon: Activity },
+  '/activities': { title: 'Activiteiten', icon: BoltIcon },
 
   // Pre-screening
   '/pre-screening': { title: 'Pre-screening', icon: Phone },
@@ -92,7 +92,7 @@ export const pageConfigs: Record<string, PageConfig> = {
  */
 export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   // Pre-screening dynamic routes
-  { pattern: /^\/pre-screening\/edit\//, config: { title: 'Pre-screening bewerken', icon: Phone } },
+  { pattern: /^\/pre-screening\/detail\//, config: { title: 'Pre-screening', icon: Phone } },
   { pattern: /^\/pre-screening\/view\//, config: { title: 'Pre-screening', icon: Phone } },
   { pattern: /^\/pre-screening\/generate\//, config: { title: 'Pre-screening', icon: Phone } },
 
@@ -100,6 +100,7 @@ export const dynamicRoutes: Array<{ pattern: RegExp; config: PageConfig }> = [
   { pattern: /^\/interviews\/generate\//, config: { title: 'Interview vragen', icon: Phone } },
 
   // Pre-onboarding dynamic routes
+  { pattern: /^\/pre-onboarding\/detail\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
   { pattern: /^\/pre-onboarding\/generate\//, config: { title: 'Pre-onboarding', icon: FileCheck } },
 
   // Admin/Ontology dynamic routes

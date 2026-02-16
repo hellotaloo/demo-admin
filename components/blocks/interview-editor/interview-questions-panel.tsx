@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Check, ChevronDown, GripVertical, Link2, MessagesSquare, Pencil, Plus, Trash2, UserX } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { BoltIcon } from '@heroicons/react/24/solid';
 import { GeneratedQuestion } from './question-list-message';
 import {
@@ -31,12 +32,10 @@ interface InterviewQuestionsPanelProps {
   onReorder?: (questions: GeneratedQuestion[]) => void;
   onAddQuestion?: (text: string, type: 'knockout' | 'qualifying', idealAnswer?: string) => void;
   onDeleteQuestion?: (questionId: string) => void;
-  onQuestionHover?: (snippet: string, questionText: string) => void;
-  onQuestionHoverEnd?: () => void;
   readOnly?: boolean;
 }
 
-export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, onQuestionHover, onQuestionHoverEnd, readOnly = false }: InterviewQuestionsPanelProps) {
+export function InterviewQuestionsPanel({ questions, isGenerating = false, highlightedIds = [], onQuestionClick, onReorder, onAddQuestion, onDeleteQuestion, readOnly = false }: InterviewQuestionsPanelProps) {
   const knockoutQuestions = questions.filter(q => q.type === 'knockout');
   const qualifyingQuestions = questions.filter(q => q.type === 'qualifying');
   const hasQuestions = questions.length > 0;
@@ -192,8 +191,6 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   animationDelay={knockoutQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
                   onDelete={readOnly ? undefined : onDeleteQuestion}
-                  onHover={onQuestionHover}
-                  onHoverEnd={onQuestionHoverEnd}
                   readOnly={readOnly}
                 />
               ))}
@@ -253,8 +250,6 @@ export function InterviewQuestionsPanel({ questions, isGenerating = false, highl
                   animationDelay={qualifyingQuestionsBaseDelay + index * 80}
                   onClick={readOnly ? undefined : onQuestionClick}
                   onDelete={readOnly ? undefined : onDeleteQuestion}
-                  onHover={onQuestionHover}
-                  onHoverEnd={onQuestionHoverEnd}
                   readOnly={readOnly}
                 />
               ))}
@@ -616,8 +611,6 @@ function SortableQuestionItem({
   animationDelay = 0,
   onClick,
   onDelete,
-  onHover,
-  onHoverEnd,
   readOnly = false,
 }: {
   question: GeneratedQuestion;
@@ -627,8 +620,6 @@ function SortableQuestionItem({
   animationDelay?: number;
   onClick?: (question: GeneratedQuestion, index: number) => void;
   onDelete?: (questionId: string) => void;
-  onHover?: (snippet: string, questionText: string) => void;
-  onHoverEnd?: () => void;
   readOnly?: boolean;
 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
@@ -727,74 +718,84 @@ function SortableQuestionItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg p-2 group ${baseClasses} ${isDragging ? 'opacity-60 shadow-lg z-50' : ''} ${hasIdealAnswer ? 'cursor-pointer' : ''}`}
+      className={`relative rounded-lg px-3 py-2 group ${baseClasses} ${isDragging ? 'opacity-60 shadow-lg z-50' : ''} ${hasIdealAnswer ? 'cursor-pointer' : ''}`}
       onClick={handleCardClick}
     >
-      <div className="flex items-center gap-2">
-        {!readOnly && (
-          <button
-            className="shrink-0 p-0.5 -ml-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none self-center"
-            {...attributes}
-            {...listeners}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="w-4 h-4" />
-          </button>
-        )}
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <p className="text-sm text-gray-700 flex-1">{question.text}</p>
-          {/* Vacancy snippet link indicator */}
-          {hasRealSnippet && (
+      {/* Drag handle - absolutely positioned on the left, visible on hover */}
+      {!readOnly && (
+        <button
+          className="absolute left-1 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
+      )}
+      {/* Action icons - absolutely positioned on the right, visible on hover */}
+      {!readOnly && (
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-100 rounded-md p-0.5">
+          {/* Chat icon - ask about this question */}
+          {onClick && (
             <button
-              onClick={(e) => e.stopPropagation()}
-              onMouseEnter={() => onHover?.(question.vacancySnippet!, question.text)}
-              onMouseLeave={() => onHoverEnd?.()}
-              className="shrink-0 p-1 text-blue-400 hover:text-blue-600 transition-colors"
-              aria-label="Toon bron uit vacature"
+              onClick={handleChatClick}
+              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+              title="Vraag stellen over deze vraag"
             >
-              <Link2 className="w-3.5 h-3.5" />
+              <MessagesSquare className="w-3.5 h-3.5" />
             </button>
           )}
+          {/* Edit icon - edit this question */}
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+            title="Vraag bewerken"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          {/* Delete icon - remove this question */}
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(question.id);
+              }}
+              className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+              title="Vraag verwijderen"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+      <div className={`flex items-center gap-2 transition-all duration-200 ${!readOnly ? 'group-hover:ml-5 group-hover:mr-20' : ''}`}>
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          <p className="text-sm text-gray-700 flex-1">{question.text}</p>
+          {/* Vacancy snippet link indicator with tooltip */}
+          {hasRealSnippet && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 p-1 text-blue-400 hover:text-blue-600 transition-colors"
+                  aria-label="Toon bron uit vacature"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                sideOffset={4}
+                className="max-w-xs bg-gray-900 text-white border-0"
+              >
+                <p className="text-xs leading-relaxed">{question.vacancySnippet}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
           {isStandardQuestion && (
-            <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-200 text-gray-500">
+            <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-200 text-gray-500 ${!readOnly ? 'group-hover:opacity-0' : ''} transition-opacity`}>
               Standaard
             </span>
-          )}
-          {/* Action icons - visible on hover, hidden in readOnly mode */}
-          {!readOnly && (
-            <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {/* Chat icon - ask about this question */}
-              {onClick && (
-                <button
-                  onClick={handleChatClick}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-                  title="Vraag stellen over deze vraag"
-                >
-                  <MessagesSquare className="w-4 h-4" />
-                </button>
-              )}
-              {/* Edit icon - edit this question (functionality to be added) */}
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
-                title="Vraag bewerken"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              {/* Delete icon - remove this question */}
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(question.id);
-                  }}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                  title="Vraag verwijderen"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
           )}
           {/* Chevron for qualifying questions - always visible */}
           {hasIdealAnswer && (
